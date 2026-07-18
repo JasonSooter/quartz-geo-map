@@ -1,0 +1,61 @@
+.geo-map-wrapper {
+  margin: 1rem 0;
+}
+
+.geo-map {
+  height: 480px;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.geo-map-empty {
+  padding: 1rem;
+  border: 1px dashed var(--lightgray);
+  border-radius: 8px;
+  color: var(--gray);
+  font-size: 0.9rem;
+}
+
+.geo-pin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.geo-pin-emoji {
+  width: auto;
+  height: auto;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent !important;
+  font-size: 20px;
+  line-height: 1;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.35);
+}
+
+// Theme-aware MapLibre popups (default is a hard white bubble).
+.maplibregl-popup-content {
+  background: var(--light);
+  color: var(--darkgray);
+  border-radius: 6px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  padding: 0.4rem 0.7rem;
+}
+
+.maplibregl-popup-content a {
+  color: var(--secondary);
+}
+
+.maplibregl-popup-tip {
+  border-top-color: var(--light);
+  border-bottom-color: var(--light);
+}
+
+.maplibregl-ctrl-attrib {
+  background: transparent !important;
+}

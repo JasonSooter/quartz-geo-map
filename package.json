@@ -1,0 +1,53 @@
+{
+  "name": "@functionalstoic/geo-map",
+  "version": "0.1.0",
+  "description": "MapLibre GL map view for Quartz Bases + a vault-wide /map of inline geo: links.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Jason Sooter",
+  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": true,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "preact": "^10.0.0"
+  },
+  "dependencies": {
+    "@quartz-community/bases-page": "github:quartz-community/bases-page",
+    "@quartz-community/types": "github:quartz-community/types",
+    "@quartz-community/utils": "github:quartz-community/utils"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "maplibre-gl": "^4.7.1",
+    "preact": "^10.28.2",
+    "sass": "^1.97.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  },
+  "quartz": {
+    "name": "geo-map",
+    "displayName": "Geo Map",
+    "category": ["transformer", "pageType", "component"],
+    "version": "0.1.0",
+    "quartzVersion": ">=5.0.0",
+    "dependencies": [],
+    "defaultEnabled": true,
+    "defaultOrder": 45
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
