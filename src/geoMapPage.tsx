@@ -9,7 +9,7 @@ import type {
 } from "@quartz-community/types";
 import { transformLink } from "@quartz-community/utils";
 import { MAP_CSS, MAP_SCRIPT } from "./assets";
-import { parseCoords, tagToIcon, type GeoMarker, type InlineGeo } from "./markers";
+import { parseCoords, tagToIcon, markerType, type GeoMarker, type InlineGeo } from "./markers";
 
 /** URL slug of the aggregated map page. */
 const SLUG = "map";
@@ -42,26 +42,31 @@ function collectMarkers(
     // 1. note-level coordinates
     const coords = parseCoords(fm.coordinates);
     if (coords) {
+      const flag = typeof fm.flag === "string" ? fm.flag : undefined;
+      const icon = typeof fm.icon === "string" ? fm.icon : undefined;
       markers.push({
         title,
         url,
         lat: coords[0],
         lng: coords[1],
         color: typeof fm.color === "string" ? fm.color : undefined,
-        flag: typeof fm.flag === "string" ? fm.flag : undefined,
-        icon: typeof fm.icon === "string" ? fm.icon : undefined,
+        flag,
+        icon,
+        type: markerType({ icon, flag }),
       });
     }
 
     // 2. inline geo links
     const links = (file.geoLinks ?? []) as InlineGeo[];
     for (const g of links) {
+      const icon = tagToIcon(g.tag);
       markers.push({
         title: g.label || title,
         url,
         lat: g.lat,
         lng: g.lng,
-        icon: tagToIcon(g.tag),
+        icon,
+        type: markerType({ icon }),
       });
     }
   }

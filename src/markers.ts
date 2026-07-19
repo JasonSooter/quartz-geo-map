@@ -12,6 +12,34 @@ export interface GeoMarker {
   flag?: string;
   /** Lucide/place-type name (e.g. "landmark", "mention"); mapped to an emoji client-side. */
   icon?: string;
+  /** Coarse place type for the filter UI (country/city/state/continent/landmark/…). */
+  type?: string;
+}
+
+/**
+ * Derive a coarse place-type (used by the /map filter chips) from a marker's
+ * flag/icon. Countries carry a flag; note-level pins use Lucide icons; inline
+ * markers use the `#place/<type>` tag (already resolved into `icon`).
+ */
+export function markerType(m: { icon?: string; flag?: string }): string {
+  if (m.flag) return "country";
+  switch (m.icon) {
+    case "landmark":
+      return "landmark";
+    case "building-2":
+      return "city";
+    case "map":
+      return "state";
+    case "globe":
+      return "continent";
+    case "museum":
+    case "park":
+    case "coworking":
+    case "mention":
+      return m.icon;
+    default:
+      return "place";
+  }
 }
 
 /** An inline `[label](geo:lat,lng) #place/type` reference found in a note body. */

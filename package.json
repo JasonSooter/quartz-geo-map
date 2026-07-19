@@ -5,7 +5,10 @@
   "type": "module",
   "license": "MIT",
   "author": "Jason Sooter",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -31,6 +34,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
+    "github-slugger": "^2.0.0",
+    "hast-util-to-jsx-runtime": "^2.3.6",
     "maplibre-gl": "^4.7.1",
     "preact": "^10.28.2",
     "sass": "^1.97.3",
@@ -40,7 +45,11 @@
   "quartz": {
     "name": "geo-map",
     "displayName": "Geo Map",
-    "category": ["transformer", "pageType", "component"],
+    "category": [
+      "transformer",
+      "pageType",
+      "component"
+    ],
     "version": "0.1.0",
     "quartzVersion": ">=5.0.0",
     "dependencies": [],

@@ -47,6 +47,18 @@ interface GeoMarker {
   color?: string;
   flag?: string;
   icon?: string;
+  /** Coarse place type for the filter chips (country/city/landmark/…). */
+  type?: string;
+}
+
+type MLMarker = InstanceType<MapLibre["Marker"]>;
+
+/** A placed marker plus the metadata the filter UI needs to show/hide it. */
+interface MarkerRef {
+  marker: MLMarker;
+  type: string;
+  /** Lowercased title, for case-insensitive search matching. */
+  title: string;
 }
 
 // Lucide icon names (from the `icon` property / Bases markerIcon) mapped to an
@@ -59,6 +71,32 @@ const ICON_EMOJI: Record<string, string> = {
   coworking: "💻",
   mention: "📖",
 };
+
+// Filter-chip label + glyph per place type, and the order chips appear in.
+const TYPE_META: Record<string, { label: string; emoji: string }> = {
+  country: { label: "Country", emoji: "🏳️" },
+  city: { label: "City", emoji: "🏙️" },
+  state: { label: "State", emoji: "🗺️" },
+  continent: { label: "Continent", emoji: "🌍" },
+  landmark: { label: "Landmark", emoji: "🏛️" },
+  museum: { label: "Museum", emoji: "🖼️" },
+  park: { label: "Park", emoji: "🌳" },
+  coworking: { label: "Coworking", emoji: "💻" },
+  mention: { label: "Mention", emoji: "📖" },
+  place: { label: "Place", emoji: "📍" },
+};
+const TYPE_ORDER = [
+  "country",
+  "city",
+  "state",
+  "continent",
+  "landmark",
+  "museum",
+  "park",
+  "coworking",
+  "mention",
+  "place",
+];
 
 function escapeHtml(s: string): string {
   return s.replace(
@@ -89,6 +127,89 @@ function markerElement(m: GeoMarker): HTMLElement {
   return el;
 }
 
+// Build a filter bar (search box + one toggle chip per present place type) and
+// insert it above the map. Toggling a chip or typing in the box shows/hides the
+// matching markers in place — no re-fetch, no map re-fit.
+function buildFilterBar(wrapper: HTMLElement, container: HTMLElement, refs: MarkerRef[]) {
+  if (!refs.length || wrapper.querySelector(".geo-filter")) return;
+
+  const present = TYPE_ORDER.filter((t) => refs.some((r) => r.type === t));
+  for (const r of refs) if (!present.includes(r.type)) present.push(r.type);
+
+  const active = new Set(present);
+  let query = "";
+
+  const apply = () => {
+    for (const r of refs) {
+      const visible = active.has(r.type) && (!query || r.title.includes(query));
+      r.marker.getElement().style.display = visible ? "" : "none";
+    }
+  };
+
+  const bar = document.createElement("div");
+  bar.className = "geo-filter";
+
+  const search = document.createElement("input");
+  search.type = "search";
+  search.className = "geo-search";
+  search.placeholder = "Search places…";
+  search.setAttribute("aria-label", "Search places");
+  search.addEventListener("input", () => {
+    query = search.value.trim().toLowerCase();
+    apply();
+  });
+  bar.appendChild(search);
+
+  const chips = document.createElement("div");
+  chips.className = "geo-chips";
+
+  const syncChip = (btn: HTMLButtonElement, on: boolean) => {
+    btn.classList.toggle("is-active", on);
+    btn.setAttribute("aria-pressed", String(on));
+  };
+
+  for (const t of present) {
+    const meta = TYPE_META[t] ?? { label: t, emoji: "📍" };
+    const count = refs.reduce((n, r) => n + (r.type === t ? 1 : 0), 0);
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "geo-chip is-active";
+    chip.dataset.type = t;
+    chip.setAttribute("aria-pressed", "true");
+    chip.innerHTML =
+      `<span class="geo-chip-emoji">${meta.emoji}</span>${meta.label}` +
+      ` <span class="geo-chip-count">${count}</span>`;
+    chip.addEventListener("click", () => {
+      if (active.has(t)) active.delete(t);
+      else active.add(t);
+      syncChip(chip, active.has(t));
+      apply();
+    });
+    chips.appendChild(chip);
+  }
+  bar.appendChild(chips);
+
+  // "All / None" convenience toggle (only meaningful with 2+ types).
+  if (present.length > 1) {
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "geo-chip geo-chip-all";
+    toggle.textContent = "All / None";
+    toggle.addEventListener("click", () => {
+      const allOn = active.size === present.length;
+      active.clear();
+      if (!allOn) present.forEach((t) => active.add(t));
+      chips.querySelectorAll<HTMLButtonElement>(".geo-chip").forEach((c) => {
+        if (c.dataset.type) syncChip(c, active.has(c.dataset.type));
+      });
+      apply();
+    });
+    bar.appendChild(toggle);
+  }
+
+  wrapper.insertBefore(bar, container);
+}
+
 function initGeoMaps(maplibregl: MapLibre) {
   document.querySelectorAll<HTMLElement>(".geo-map").forEach((el) => {
     const container = el as HTMLElement & { _geoMap?: MLMap };
@@ -116,15 +237,23 @@ function initGeoMaps(maplibregl: MapLibre) {
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
 
     const bounds = new maplibregl.LngLatBounds();
+    const refs: MarkerRef[] = [];
     for (const m of markers) {
       const popup = new maplibregl.Popup({ offset: 14, closeButton: false }).setHTML(
         `<a href="${escapeHtml(m.url)}" class="internal">${escapeHtml(m.title)}</a>`,
       );
-      new maplibregl.Marker({ element: markerElement(m), anchor: "center" })
+      const marker = new maplibregl.Marker({ element: markerElement(m), anchor: "center" })
         .setLngLat([m.lng, m.lat])
         .setPopup(popup)
         .addTo(map);
+      refs.push({ marker, type: m.type || "place", title: (m.title || "").toLowerCase() });
       bounds.extend([m.lng, m.lat]);
+    }
+
+    // Add the filter bar above the map (the wrapper the page renders around it).
+    const wrapper = container.parentElement;
+    if (wrapper && wrapper.classList.contains("geo-map-wrapper")) {
+      buildFilterBar(wrapper, container, refs);
     }
 
     const applyView = () => {
