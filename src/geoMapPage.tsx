@@ -9,7 +9,7 @@ import type {
 } from "@quartz-community/types";
 import { transformLink } from "@quartz-community/utils";
 import { MAP_CSS, MAP_SCRIPT } from "./assets";
-import { parseCoords, tagToIcon, markerType, type GeoMarker, type InlineGeo } from "./markers";
+import { noteCoords, tagToIcon, markerType, type GeoMarker, type InlineGeo } from "./markers";
 
 /** URL slug of the aggregated map page. */
 const SLUG = "map";
@@ -40,7 +40,7 @@ function collectMarkers(
       typeof fm.title === "string" && fm.title.length > 0 ? fm.title : file.slug || "Untitled";
 
     // 1. note-level coordinates
-    const coords = parseCoords(fm.coordinates);
+    const coords = noteCoords(fm);
     if (coords) {
       const flag = typeof fm.flag === "string" ? fm.flag : undefined;
       const icon = typeof fm.icon === "string" ? fm.icon : undefined;

@@ -2,7 +2,7 @@ import { viewRegistry } from "@quartz-community/bases-page";
 import { transformLink } from "@quartz-community/utils";
 import type { FullSlug } from "@quartz-community/types";
 import { MAP_CSS, MAP_SCRIPT } from "./assets";
-import { parseCoords, markerType, type GeoMarker } from "./markers";
+import { noteCoords, markerType, type GeoMarker } from "./markers";
 
 // Minimal shape of what the bases-page ViewRegistry hands each renderer. We only
 // declare the fields this view reads to avoid coupling to unexported internals.
@@ -21,7 +21,7 @@ interface RenderProps {
 function render({ entries, slug, allSlugs, linkResolution }: RenderProps) {
   const markers: GeoMarker[] = [];
   for (const entry of entries) {
-    const coords = parseCoords(entry.properties.coordinates);
+    const coords = noteCoords(entry.properties);
     if (!coords) continue;
     const color = typeof entry.properties.color === "string" ? entry.properties.color : undefined;
     const flag = typeof entry.properties.flag === "string" ? entry.properties.flag : undefined;
