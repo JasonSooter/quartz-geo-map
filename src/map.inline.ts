@@ -70,6 +70,7 @@ const ICON_EMOJI: Record<string, string> = {
   park: "🌳",
   coworking: "💻",
   mention: "📖",
+  book: "📚",
 };
 
 // Filter-chip label + glyph per place type, and the order chips appear in.
@@ -83,6 +84,7 @@ const TYPE_META: Record<string, { label: string; emoji: string }> = {
   park: { label: "Park", emoji: "🌳" },
   coworking: { label: "Coworking", emoji: "💻" },
   mention: { label: "Mention", emoji: "📖" },
+  literary: { label: "From books", emoji: "📚" },
   place: { label: "Place", emoji: "📍" },
 };
 const TYPE_ORDER = [
@@ -95,6 +97,7 @@ const TYPE_ORDER = [
   "park",
   "coworking",
   "mention",
+  "literary",
   "place",
 ];
 

@@ -37,6 +37,8 @@ export function markerType(m: { icon?: string; flag?: string }): string {
     case "coworking":
     case "mention":
       return m.icon;
+    case "book":
+      return "literary";
     default:
       return "place";
   }
@@ -57,6 +59,23 @@ export function parseCoords(raw: unknown): [number, number] | null {
   const parts = raw.split(",").map((p) => Number(p.trim()));
   if (parts.length !== 2 || parts.some((n) => Number.isNaN(n))) return null;
   return [parts[0], parts[1]];
+}
+
+/**
+ * A note's pin: the Map View plugin's `coordinates: "lat,lng"`, else the
+ * `location: [lat, lng]` list that Obsidian Bases' map view uses (also accepted
+ * as a "lat,lng" string).
+ */
+export function noteCoords(props: Record<string, unknown>): [number, number] | null {
+  const fromCoordinates = parseCoords(props.coordinates);
+  if (fromCoordinates) return fromCoordinates;
+  const loc = props.location;
+  if (Array.isArray(loc) && loc.length === 2) {
+    const [lat, lng] = loc.map((n) => Number(n));
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return [lat, lng];
+    return null;
+  }
+  return parseCoords(loc);
 }
 
 // [label](geo:LAT,LNG) optionally followed by a #place/type tag.
