@@ -4,7 +4,10 @@
 // OpenStreetMap vector tiles (via OpenFreeMap) so streets stay crisp at every
 // zoom. MapLibre's CSS is injected separately (page-scoped) via the view's `css`.
 
-const MAPLIBRE_JS = "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js";
+// MapLibre 5+ ships only as ES modules (no UMD global), so it is loaded with a
+// dynamic import. Keep this version in step with the maplibre-gl devDependency,
+// whose CSS is bundled in assets.ts.
+const MAPLIBRE_JS = "https://cdn.jsdelivr.net/npm/maplibre-gl@6.14.0/dist/maplibre-gl.mjs";
 
 // OpenFreeMap styles — all rendered from OpenStreetMap data, keyless.
 // Swap these two constants to change the basemap look.
@@ -23,19 +26,18 @@ let libPromise: Promise<MapLibre> | null = null;
 function loadMapLibre(): Promise<MapLibre> {
   const w = window as unknown as MapLibreWindow;
   if (w.maplibregl) return Promise.resolve(w.maplibregl);
-  if (libPromise) return libPromise;
-  libPromise = new Promise<MapLibre>((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = MAPLIBRE_JS;
-    s.async = true;
-    s.crossOrigin = "anonymous";
-    s.onload = () => {
-      const lib = (window as unknown as MapLibreWindow).maplibregl;
-      lib ? resolve(lib) : reject(new Error("geo-map: MapLibre GL loaded but global missing"));
-    };
-    s.onerror = () => reject(new Error("geo-map: failed to load MapLibre GL"));
-    document.head.appendChild(s);
-  });
+  if (!libPromise) {
+    libPromise = (import(/* @vite-ignore */ MAPLIBRE_JS) as Promise<MapLibre & { default?: MapLibre }>)
+      .then((mod) => {
+        const lib = mod.default ?? mod;
+        w.maplibregl = lib;
+        return lib;
+      })
+      .catch((err) => {
+        libPromise = null;
+        throw new Error(`geo-map: failed to load MapLibre GL (${err})`);
+      });
+  }
   return libPromise;
 }
 
