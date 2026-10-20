@@ -37,7 +37,11 @@ export function markerType(m: { icon?: string; flag?: string }): string {
     case "coworking":
     case "mention":
       return m.icon;
+    // Places found in reading: books, articles, podcasts, videos.
     case "book":
+    case "newspaper":
+    case "podcast":
+    case "video":
       return "literary";
     default:
       return "place";
