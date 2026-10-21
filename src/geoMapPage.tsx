@@ -28,6 +28,15 @@ const MAX_SOURCES = 3;
 interface GeoMapPageOptions {
   /** Link resolution strategy; should match crawl-links. Default "shortest". */
   linkResolution?: "absolute" | "relative" | "shortest";
+  /** Page title. Default "Map". */
+  title?: string;
+  /** Meta/link-preview description for the page. */
+  description?: string;
+  /**
+   * Link-preview image: an absolute URL, or a path under the site's `static/`
+   * folder (e.g. "map-og.jpg"). Without one, og-image falls back to its default.
+   */
+  socialImage?: string;
 }
 
 /**
@@ -159,17 +168,25 @@ const GeoMapBody: QuartzComponentConstructor = () => {
  * Page type that generates a single virtual `/map` page aggregating every
  * geolocated note in the vault — both note-level pins and inline geo mentions.
  */
-export const GeoMapPage: QuartzPageTypePlugin<GeoMapPageOptions> = () => ({
+export const GeoMapPage: QuartzPageTypePlugin<GeoMapPageOptions> = (opts) => ({
   name: "GeoMapPage",
   priority: 20,
   match: ({ fileData }) => "isGeoMapPage" in fileData,
   generate(): VirtualPage[] {
+    const title = opts?.title ?? "Map";
+    const { description, socialImage } = opts ?? {};
     return [
       {
         slug: SLUG as FullSlug,
-        title: "Map",
+        title,
         data: {
-          frontmatter: { title: "Map", tags: [] },
+          frontmatter: {
+            title,
+            tags: [],
+            ...(description ? { description } : {}),
+            ...(socialImage ? { socialImage } : {}),
+          },
+          ...(description ? { description } : {}),
           isGeoMapPage: true,
         },
       },

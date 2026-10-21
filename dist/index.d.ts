@@ -48,6 +48,15 @@ declare module "vfile" {
 interface GeoMapPageOptions {
     /** Link resolution strategy; should match crawl-links. Default "shortest". */
     linkResolution?: "absolute" | "relative" | "shortest";
+    /** Page title. Default "Map". */
+    title?: string;
+    /** Meta/link-preview description for the page. */
+    description?: string;
+    /**
+     * Link-preview image: an absolute URL, or a path under the site's `static/`
+     * folder (e.g. "map-og.jpg"). Without one, og-image falls back to its default.
+     */
+    socialImage?: string;
 }
 /**
  * Page type that generates a single virtual `/map` page aggregating every

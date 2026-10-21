@@ -10177,17 +10177,25 @@ var GeoMapBody = () => {
   Body.afterDOMLoaded = MAP_SCRIPT;
   return Body;
 };
-var GeoMapPage = () => ({
+var GeoMapPage = (opts) => ({
   name: "GeoMapPage",
   priority: 20,
   match: ({ fileData }) => "isGeoMapPage" in fileData,
   generate() {
+    const title = opts?.title ?? "Map";
+    const { description, socialImage } = opts ?? {};
     return [
       {
         slug: SLUG,
-        title: "Map",
+        title,
         data: {
-          frontmatter: { title: "Map", tags: [] },
+          frontmatter: {
+            title,
+            tags: [],
+            ...description ? { description } : {},
+            ...socialImage ? { socialImage } : {}
+          },
+          ...description ? { description } : {},
           isGeoMapPage: true
         }
       }

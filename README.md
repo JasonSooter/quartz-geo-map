@@ -106,3 +106,16 @@ that mention it:
 
 The search box matches place names, source titles and authors, so typing a book
 title shows every place it mentions.
+
+## `/map` page options
+
+```yaml
+- source: github:JasonSooter/quartz-geo-map
+  options:
+    title: Map
+    description: Every place mentioned in the books, articles and videos I read.
+    socialImage: map-og.jpg # under quartz/static/, or an absolute URL
+```
+
+`description` fills the page's meta and link-preview description. `socialImage`
+sets its link-preview image; without it, og-image falls back to its default.
