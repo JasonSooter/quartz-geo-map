@@ -79,3 +79,30 @@ a base that defines a map page (e.g. `Map View.base`) must be committed into
 `content/` directly (the vault stays the source of truth; the `content/` copy is
 a build mirror). The `/map` page has no such caveat — it's generated from note
 bodies, which publish normally.
+
+## Marker popups
+
+Hovering a marker previews a popup; clicking (or tapping) pins it open. The
+popup shows the place name (linking to its note), a short summary, and the works
+that mention it:
+
+- **Summary:** the note's `description` property, else its first prose paragraph.
+- **Sources:** rows of an `## At a glance` table in the note body. Columns are
+  matched by header (`Source`, `Author`, `Role`, `In one line`); only `Source`
+  is required.
+
+  ```markdown
+  ## At a glance
+
+  | Source | Author | Role | In one line |
+  |---|---|---|---|
+  | [[Not the End of the World]] | Hannah Ritchie | subject | Why boycotting palm oil backfires. |
+  ```
+
+  A `[[wikilink]]` source links to that note when it is published. Otherwise the
+  popup links to the `[Original](https://…)` URL in the source's own
+  `## Title — Author` section, if there is one. The popup lists three sources and
+  links to the place note for the rest.
+
+The search box matches place names, source titles and authors, so typing a book
+title shows every place it mentions.

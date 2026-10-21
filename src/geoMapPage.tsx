@@ -9,10 +9,21 @@ import type {
 } from "@quartz-community/types";
 import { transformLink } from "@quartz-community/utils";
 import { MAP_CSS, MAP_SCRIPT } from "./assets";
-import { noteCoords, tagToIcon, markerType, type GeoMarker, type InlineGeo } from "./markers";
+import {
+  noteCoords,
+  tagToIcon,
+  markerType,
+  type GeoMarker,
+  type GeoSource,
+  type InlineGeo,
+  type RawGeoSource,
+} from "./markers";
 
 /** URL slug of the aggregated map page. */
 const SLUG = "map";
+
+/** Sources listed per popup; the rest are summarised as "+N more". */
+const MAX_SOURCES = 3;
 
 interface GeoMapPageOptions {
   /** Link resolution strategy; should match crawl-links. Default "shortest". */
@@ -31,13 +42,42 @@ function collectMarkers(
   linkResolution: "absolute" | "relative" | "shortest",
 ): GeoMarker[] {
   const markers: GeoMarker[] = [];
+  const link = (slug: FullSlug) =>
+    transformLink(pageSlug, slug, { strategy: linkResolution, allSlugs });
+
+  // Wikilink target (title, alias or file name, case-insensitive) → slug, so a
+  // source's `[[Book]]` becomes a link to that book's note.
+  const bySlugName = new Map<string, FullSlug>();
   for (const file of allFiles) {
     const slug = file.slug as FullSlug | undefined;
     if (!slug) continue;
     const fm = (file.frontmatter ?? {}) as Record<string, unknown>;
-    const url = transformLink(pageSlug, slug, { strategy: linkResolution, allSlugs });
+    const aliases = Array.isArray(fm.aliases) ? fm.aliases : [];
+    const names = [fm.title, ...aliases, slug.split("/").pop()?.replace(/-/g, " ")];
+    for (const n of names) {
+      if (typeof n === "string" && n) {
+        const key = n.toLowerCase();
+        if (!bySlugName.has(key)) bySlugName.set(key, slug);
+      }
+    }
+  }
+  const resolveSources = (raw: RawGeoSource[]): GeoSource[] =>
+    raw.map(({ target, ...src }) => {
+      const slug = target ? bySlugName.get(target.toLowerCase()) : undefined;
+      return slug ? { ...src, url: link(slug) } : src;
+    });
+
+  for (const file of allFiles) {
+    const slug = file.slug as FullSlug | undefined;
+    if (!slug) continue;
+    const fm = (file.frontmatter ?? {}) as Record<string, unknown>;
+    const url = link(slug);
     const title =
       typeof fm.title === "string" && fm.title.length > 0 ? fm.title : file.slug || "Untitled";
+    const summary =
+      typeof fm.description === "string" && fm.description
+        ? fm.description
+        : (file.geoSummary as string | undefined);
 
     // 1. note-level coordinates
     const coords = noteCoords(fm);
@@ -53,6 +93,8 @@ function collectMarkers(
         flag,
         icon,
         type: markerType({ icon, flag }),
+        summary,
+        ...capSources(resolveSources((file.geoSources ?? []) as RawGeoSource[])),
       });
     }
 
@@ -67,10 +109,20 @@ function collectMarkers(
         lng: g.lng,
         icon,
         type: markerType({ icon }),
+        // An inline mention's source is the note it appears in.
+        sources: [{ title, url, line: summary }],
       });
     }
   }
   return markers;
+}
+
+function capSources(sources: GeoSource[]): Pick<GeoMarker, "sources" | "moreSources"> {
+  if (!sources.length) return {};
+  const extra = sources.length - MAX_SOURCES;
+  return extra > 0
+    ? { sources: sources.slice(0, MAX_SOURCES), moreSources: extra }
+    : { sources };
 }
 
 const GeoMapBody: QuartzComponentConstructor = () => {

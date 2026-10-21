@@ -96,6 +96,7 @@
 }
 
 .geo-pin {
+  cursor: pointer;
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -126,6 +127,73 @@
 
 .maplibregl-popup-content a {
   color: var(--secondary);
+}
+
+// Rich marker popup: place name, summary, and the works that mention it.
+.geo-popup {
+  .maplibregl-popup-content {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    max-height: min(13rem, 40vh);
+    overflow-y: auto;
+  }
+
+  p,
+  li,
+  span {
+    line-height: 1.4;
+  }
+
+  a {
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.geo-popup-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.geo-popup-summary {
+  margin: 0.25rem 0 0;
+  color: var(--darkgray);
+}
+
+.geo-popup-sources {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0.4rem 0 0;
+  border-top: 1px solid var(--lightgray);
+
+  li {
+    margin: 0 0 0.35rem;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.geo-popup-source {
+  font-weight: 600;
+}
+
+.geo-popup-meta {
+  color: var(--gray);
+  font-size: 0.9em;
+}
+
+.geo-popup-line {
+  display: block;
+  color: var(--darkgray);
+}
+
+.geo-popup-more {
+  margin-top: 0.35rem;
+  font-size: 0.9em;
 }
 
 .maplibregl-popup-tip {
