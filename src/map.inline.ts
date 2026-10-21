@@ -51,6 +51,18 @@ interface GeoMarker {
   icon?: string;
   /** Coarse place type for the filter chips (country/city/landmark/…). */
   type?: string;
+  summary?: string;
+  sources?: GeoSource[];
+  moreSources?: number;
+}
+
+interface GeoSource {
+  title: string;
+  url?: string;
+  external?: string;
+  author?: string;
+  role?: string;
+  line?: string;
 }
 
 type MLMarker = InstanceType<MapLibre["Marker"]>;
@@ -59,8 +71,8 @@ type MLMarker = InstanceType<MapLibre["Marker"]>;
 interface MarkerRef {
   marker: MLMarker;
   type: string;
-  /** Lowercased title, for case-insensitive search matching. */
-  title: string;
+  /** Lowercased title + source titles/authors, for case-insensitive search. */
+  haystack: string;
 }
 
 // Lucide icon names (from the `icon` property / Bases markerIcon) mapped to an
@@ -123,6 +135,45 @@ function styleUrl(dark: boolean = isDark()): string {
   return dark ? STYLE_DARK : STYLE_LIGHT;
 }
 
+function link(url: string | undefined, text: string): string {
+  return url
+    ? `<a href="${escapeHtml(url)}" class="internal">${escapeHtml(text)}</a>`
+    : escapeHtml(text);
+}
+
+// A source links to its note when it has one, else to the original work online.
+function sourceLink(s: GeoSource): string {
+  if (s.url || !s.external) return link(s.url, s.title);
+  return (
+    `<a href="${escapeHtml(s.external)}" class="external" target="_blank" rel="noopener noreferrer">` +
+    `${escapeHtml(s.title)} ↗</a>`
+  );
+}
+
+// Popup body: place name, short summary, then the works that mention it.
+function popupHtml(m: GeoMarker): string {
+  let html = `<div class="geo-popup-title">${link(m.url, m.title)}</div>`;
+  if (m.summary) html += `<p class="geo-popup-summary">${escapeHtml(m.summary)}</p>`;
+  if (m.sources?.length) {
+    html += `<ul class="geo-popup-sources">`;
+    for (const s of m.sources) {
+      const meta = [s.author, s.role].filter(Boolean).map((t) => escapeHtml(t as string));
+      html +=
+        `<li><span class="geo-popup-source">${sourceLink(s)}</span>` +
+        (meta.length ? ` <span class="geo-popup-meta">${meta.join(" · ")}</span>` : "") +
+        (s.line && s.line !== m.summary
+          ? `<span class="geo-popup-line">${escapeHtml(s.line)}</span>`
+          : "") +
+        `</li>`;
+    }
+    html += `</ul>`;
+    if (m.moreSources) {
+      html += `<div class="geo-popup-more">${link(m.url, `+${m.moreSources} more →`)}</div>`;
+    }
+  }
+  return html;
+}
+
 function markerElement(m: GeoMarker): HTMLElement {
   const el = document.createElement("div");
   const emoji = m.flag || (m.icon ? ICON_EMOJI[m.icon] : undefined);
@@ -139,7 +190,12 @@ function markerElement(m: GeoMarker): HTMLElement {
 // Build a filter bar (search box + one toggle chip per present place type) and
 // insert it above the map. Toggling a chip or typing in the box shows/hides the
 // matching markers in place — no re-fetch, no map re-fit.
-function buildFilterBar(wrapper: HTMLElement, container: HTMLElement, refs: MarkerRef[]) {
+function buildFilterBar(
+  wrapper: HTMLElement,
+  container: HTMLElement,
+  refs: MarkerRef[],
+  onFilter: () => void,
+) {
   if (!refs.length || wrapper.querySelector(".geo-filter")) return;
 
   const present = TYPE_ORDER.filter((t) => refs.some((r) => r.type === t));
@@ -150,9 +206,10 @@ function buildFilterBar(wrapper: HTMLElement, container: HTMLElement, refs: Mark
 
   const apply = () => {
     for (const r of refs) {
-      const visible = active.has(r.type) && (!query || r.title.includes(query));
+      const visible = active.has(r.type) && (!query || r.haystack.includes(query));
       r.marker.getElement().style.display = visible ? "" : "none";
     }
+    onFilter();
   };
 
   const bar = document.createElement("div");
@@ -161,8 +218,8 @@ function buildFilterBar(wrapper: HTMLElement, container: HTMLElement, refs: Mark
   const search = document.createElement("input");
   search.type = "search";
   search.className = "geo-search";
-  search.placeholder = "Search places…";
-  search.setAttribute("aria-label", "Search places");
+  search.placeholder = "Search places, books, authors…";
+  search.setAttribute("aria-label", "Search places, books and authors");
   search.addEventListener("input", () => {
     query = search.value.trim().toLowerCase();
     apply();
@@ -245,24 +302,83 @@ function initGeoMaps(maplibregl: MapLibre) {
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
 
+    // One popup per map. Hovering a marker previews it; clicking (or tapping)
+    // pins it open until the map is clicked, Escape is pressed, or another
+    // marker is pinned. Moving the pointer onto a preview keeps it open so its
+    // links can be followed.
+    const popup = new maplibregl.Popup({
+      offset: 14,
+      closeButton: false,
+      closeOnClick: true,
+      maxWidth: "min(320px, calc(100vw - 4rem))",
+      // Hover previews must not steal focus (and draw a focus ring on the title).
+      focusAfterOpen: false,
+      className: "geo-popup",
+    });
+    let current: GeoMarker | null = null;
+    let pinned = false;
+    let hideTimer: number | undefined;
+    const cancelHide = () => window.clearTimeout(hideTimer);
+    const show = (m: GeoMarker) => {
+      cancelHide();
+      if (current !== m || !popup.isOpen()) {
+        popup.setLngLat([m.lng, m.lat]).setHTML(popupHtml(m)).addTo(map);
+        current = m;
+        const el = popup.getElement();
+        el.addEventListener("mouseenter", cancelHide);
+        el.addEventListener("mouseleave", scheduleHide);
+      }
+    };
+    const scheduleHide = () => {
+      if (pinned) return;
+      cancelHide();
+      hideTimer = window.setTimeout(() => popup.remove(), 200);
+    };
+    popup.on("close", () => {
+      pinned = false;
+      current = null;
+    });
+    container.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") popup.remove();
+    });
+
     const bounds = new maplibregl.LngLatBounds();
     const refs: MarkerRef[] = [];
     for (const m of markers) {
-      const popup = new maplibregl.Popup({ offset: 14, closeButton: false }).setHTML(
-        `<a href="${escapeHtml(m.url)}" class="internal">${escapeHtml(m.title)}</a>`,
-      );
-      const marker = new maplibregl.Marker({ element: markerElement(m), anchor: "center" })
+      const el = markerElement(m);
+      el.addEventListener("mouseenter", () => {
+        if (!pinned) show(m);
+      });
+      el.addEventListener("mouseleave", scheduleHide);
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (pinned && current === m) {
+          popup.remove();
+          return;
+        }
+        pinned = false;
+        show(m);
+        pinned = true;
+        // Bring the pinned place to just above centre so its popup (which opens
+        // below when there is room) fits inside the map.
+        const lift = Math.min(120, container.clientHeight / 4);
+        map.easeTo({ center: [m.lng, m.lat], offset: [0, -lift], duration: 300 });
+      });
+      const marker = new maplibregl.Marker({ element: el, anchor: "center" })
         .setLngLat([m.lng, m.lat])
-        .setPopup(popup)
         .addTo(map);
-      refs.push({ marker, type: m.type || "place", title: (m.title || "").toLowerCase() });
+      const haystack = [m.title, ...(m.sources ?? []).flatMap((s) => [s.title, s.author])]
+        .filter(Boolean)
+        .join("\n")
+        .toLowerCase();
+      refs.push({ marker, type: m.type || "place", haystack });
       bounds.extend([m.lng, m.lat]);
     }
 
     // Add the filter bar above the map (the wrapper the page renders around it).
     const wrapper = container.parentElement;
     if (wrapper && wrapper.classList.contains("geo-map-wrapper")) {
-      buildFilterBar(wrapper, container, refs);
+      buildFilterBar(wrapper, container, refs, () => popup.remove());
     }
 
     const applyView = () => {
