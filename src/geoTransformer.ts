@@ -17,8 +17,14 @@ export const GeoLinks: QuartzTransformerPlugin = () => ({
   markdownPlugins() {
     return [
       () =>
-        (_tree: unknown, file: { value?: unknown; data: Record<string, unknown> }) => {
-          const raw = typeof file.value === "string" ? file.value : String(file.value ?? "");
+        (
+          _tree: unknown,
+          file: { value?: unknown; data: Record<string, unknown> },
+        ) => {
+          const raw =
+            typeof file.value === "string"
+              ? file.value
+              : String(file.value ?? "");
           const found = extractInlineGeo(raw);
           if (found.length) file.data.geoLinks = found;
           const summary = extractSummary(raw);

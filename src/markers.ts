@@ -20,6 +20,12 @@ export interface GeoMarker {
   sources?: GeoSource[];
   /** How many further sources exist beyond `sources`. */
   moreSources?: number;
+  /** What kind of work mentions it: book/article/video/podcast, else "travel". */
+  medium?: string;
+  /** Canonical roles across all sources (subject/setting/journey/turning point/backdrop/other). */
+  roles?: string[];
+  /** Titles of every source (uncapped), for the "From:" filter. */
+  from?: string[];
 }
 
 /** A work that mentions a place, from the note's "At a glance" table. */
@@ -74,6 +80,44 @@ export function markerType(m: { icon?: string; flag?: string }): string {
   }
 }
 
+/**
+ * The /map medium filter: places found in reading carry the source's icon
+ * (book/newspaper/video/podcast); everything else is a travel place.
+ */
+export function markerMedium(icon: string | undefined): string {
+  switch (icon) {
+    case "book":
+    case "mention":
+      return "book";
+    case "newspaper":
+      return "article";
+    case "video":
+      return "video";
+    case "podcast":
+      return "podcast";
+    default:
+      return "travel";
+  }
+}
+
+/** Fold free-text roles ("journey waypoint", "setting / subject") into filter buckets. */
+export function canonicalRoles(raw: (string | undefined)[]): string[] {
+  const out = new Set<string>();
+  for (const r of raw) {
+    for (const part of (r ?? "").toLowerCase().split(/[/,;]/)) {
+      const t = part.trim();
+      if (!t) continue;
+      if (t.includes("waypoint") || t.includes("journey")) out.add("journey");
+      else if (t.includes("turning")) out.add("turning point");
+      else if (t.includes("subject")) out.add("subject");
+      else if (t.includes("setting")) out.add("setting");
+      else if (t.includes("backdrop")) out.add("backdrop");
+      else out.add("other");
+    }
+  }
+  return [...out];
+}
+
 /** An inline `[label](geo:lat,lng) #place/type` reference found in a note body. */
 export interface InlineGeo {
   label: string;
@@ -96,7 +140,9 @@ export function parseCoords(raw: unknown): [number, number] | null {
  * `location: [lat, lng]` list that Obsidian Bases' map view uses (also accepted
  * as a "lat,lng" string).
  */
-export function noteCoords(props: Record<string, unknown>): [number, number] | null {
+export function noteCoords(
+  props: Record<string, unknown>,
+): [number, number] | null {
   const fromCoordinates = parseCoords(props.coordinates);
   if (fromCoordinates) return fromCoordinates;
   const loc = props.location;
@@ -118,7 +164,12 @@ export function extractInlineGeo(raw: string): InlineGeo[] {
   GEO_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = GEO_RE.exec(raw)) !== null) {
-    out.push({ label: m[1] || "", lat: Number(m[2]), lng: Number(m[3]), tag: m[4] });
+    out.push({
+      label: m[1] || "",
+      lat: Number(m[2]),
+      lng: Number(m[3]),
+      tag: m[4],
+    });
   }
   return out;
 }
@@ -134,7 +185,9 @@ const WIKILINK_RE = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/g;
 /** Flatten markdown inline syntax (wikilinks, links, emphasis) to plain text. */
 export function plainText(md: string): string {
   return md
-    .replace(WIKILINK_RE, (_m, target: string, alias?: string) => (alias ?? target).trim())
+    .replace(WIKILINK_RE, (_m, target: string, alias?: string) =>
+      (alias ?? target).trim(),
+    )
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[*_`]/g, "")
     .replace(/\s+/g, " ")
@@ -156,7 +209,9 @@ export function extractSummary(raw: string, maxLen = 220): string | undefined {
     if (!text || /^(#|\||>|[-*+] |\d+\. |!\[|```|<)/.test(text)) continue;
     const flat = plainText(text);
     if (!flat) continue;
-    return flat.length > maxLen ? `${flat.slice(0, maxLen - 1).trimEnd()}…` : flat;
+    return flat.length > maxLen
+      ? `${flat.slice(0, maxLen - 1).trimEnd()}…`
+      : flat;
   }
   return undefined;
 }
@@ -167,13 +222,21 @@ export function extractSummary(raw: string, maxLen = 220): string | undefined {
  * order and extra columns don't matter; only Source is required.
  */
 export function extractSources(raw: string): RawGeoSource[] {
-  const m = body(raw).match(/^##+\s*At a glance\s*\r?\n+((?:\|.*(?:\r?\n|$))+)/im);
+  const m = body(raw).match(
+    /^##+\s*At a glance\s*\r?\n+((?:\|.*(?:\r?\n|$))+)/im,
+  );
   if (!m) return [];
   const rows = m[1]
     .split(/\r?\n/)
     .filter((r) => r.trim().startsWith("|"))
     // Split on unescaped pipes; a `\|` inside a wikilink alias stays put.
-    .map((r) => r.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((c) => c.trim()));
+    .map((r) =>
+      r
+        .trim()
+        .replace(/^\||\|$/g, "")
+        .split(/(?<!\\)\|/)
+        .map((c) => c.trim()),
+    );
   if (rows.length < 3) return [];
   const header = rows[0].map((h) => h.toLowerCase());
   const col = (name: string) => header.findIndex((h) => h.includes(name));
@@ -190,7 +253,8 @@ export function extractSources(raw: string): RawGeoSource[] {
     if (!title) continue;
     WIKILINK_RE.lastIndex = 0;
     const link = WIKILINK_RE.exec(cell);
-    const get = (i: number) => (i >= 0 && cells[i] ? plainText(cells[i]) : undefined);
+    const get = (i: number) =>
+      i >= 0 && cells[i] ? plainText(cells[i]) : undefined;
     out.push({
       title,
       target: link ? link[1].trim() : undefined,
@@ -209,8 +273,12 @@ export function extractSources(raw: string): RawGeoSource[] {
  */
 function originalLinks(raw: string): Map<string, string> {
   const out = new Map<string, string>();
-  for (const section of body(raw).split(/^##\s+/m).slice(1)) {
-    const heading = section.slice(0, section.indexOf("\n")).split(/\s+[—–]\s+/)[0];
+  for (const section of body(raw)
+    .split(/^##\s+/m)
+    .slice(1)) {
+    const heading = section
+      .slice(0, section.indexOf("\n"))
+      .split(/\s+[—–]\s+/)[0];
     const url = section.match(/\[Original\]\((https?:\/\/[^)\s]+)\)/)?.[1];
     if (heading && url) out.set(plainText(heading).toLowerCase(), url);
   }

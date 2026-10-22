@@ -13,6 +13,8 @@ import {
   noteCoords,
   tagToIcon,
   markerType,
+  markerMedium,
+  canonicalRoles,
   type GeoMarker,
   type GeoSource,
   type InlineGeo,
@@ -62,7 +64,11 @@ function collectMarkers(
     if (!slug) continue;
     const fm = (file.frontmatter ?? {}) as Record<string, unknown>;
     const aliases = Array.isArray(fm.aliases) ? fm.aliases : [];
-    const names = [fm.title, ...aliases, slug.split("/").pop()?.replace(/-/g, " ")];
+    const names = [
+      fm.title,
+      ...aliases,
+      slug.split("/").pop()?.replace(/-/g, " "),
+    ];
     for (const n of names) {
       if (typeof n === "string" && n) {
         const key = n.toLowerCase();
@@ -82,7 +88,9 @@ function collectMarkers(
     const fm = (file.frontmatter ?? {}) as Record<string, unknown>;
     const url = link(slug);
     const title =
-      typeof fm.title === "string" && fm.title.length > 0 ? fm.title : file.slug || "Untitled";
+      typeof fm.title === "string" && fm.title.length > 0
+        ? fm.title
+        : file.slug || "Untitled";
     const summary =
       typeof fm.description === "string" && fm.description
         ? fm.description
@@ -102,8 +110,11 @@ function collectMarkers(
         flag,
         icon,
         type: markerType({ icon, flag }),
+        medium: markerMedium(icon),
         summary,
-        ...capSources(resolveSources((file.geoSources ?? []) as RawGeoSource[])),
+        ...capSources(
+          resolveSources((file.geoSources ?? []) as RawGeoSource[]),
+        ),
       });
     }
 
@@ -118,24 +129,36 @@ function collectMarkers(
         lng: g.lng,
         icon,
         type: markerType({ icon }),
+        medium: markerMedium(icon),
         // An inline mention's source is the note it appears in.
         sources: [{ title, url, line: summary }],
+        from: [title],
       });
     }
   }
   return markers;
 }
 
-function capSources(sources: GeoSource[]): Pick<GeoMarker, "sources" | "moreSources"> {
+function capSources(
+  sources: GeoSource[],
+): Pick<GeoMarker, "sources" | "moreSources" | "roles" | "from"> {
   if (!sources.length) return {};
   const extra = sources.length - MAX_SOURCES;
+  const filters = {
+    roles: canonicalRoles(sources.map((s) => s.role)),
+    from: [...new Set(sources.map((s) => s.title))],
+  };
   return extra > 0
-    ? { sources: sources.slice(0, MAX_SOURCES), moreSources: extra }
-    : { sources };
+    ? { sources: sources.slice(0, MAX_SOURCES), moreSources: extra, ...filters }
+    : { sources, ...filters };
 }
 
 const GeoMapBody: QuartzComponentConstructor = () => {
-  const Body: QuartzComponent = ({ fileData, allFiles, cfg }: QuartzComponentProps) => {
+  const Body: QuartzComponent = ({
+    fileData,
+    allFiles,
+    cfg,
+  }: QuartzComponentProps) => {
     const pageSlug = (fileData.slug ?? SLUG) as FullSlug;
     const allSlugs = allFiles
       .map((f) => f.slug)
@@ -143,14 +166,19 @@ const GeoMapBody: QuartzComponentConstructor = () => {
     const linkResolution =
       (cfg as { geoMapLinkResolution?: "absolute" | "relative" | "shortest" })
         .geoMapLinkResolution ?? "shortest";
-    const markers = collectMarkers(allFiles, pageSlug, allSlugs, linkResolution);
+    const markers = collectMarkers(
+      allFiles,
+      pageSlug,
+      allSlugs,
+      linkResolution,
+    );
 
     return (
       <div class="geo-map-wrapper">
         {markers.length === 0 ? (
           <div class="geo-map-empty">
-            No geolocated notes yet — add a <code>coordinates</code> property or an inline{" "}
-            <code>[name](geo:lat,lng)</code> link.
+            No geolocated notes yet — add a <code>coordinates</code> property or
+            an inline <code>[name](geo:lat,lng)</code> link.
           </div>
         ) : (
           <div class="geo-map" data-geo-markers={JSON.stringify(markers)} />

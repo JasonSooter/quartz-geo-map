@@ -79,41 +79,10 @@
   }
 }
 
-.geo-chip-emoji {
-  font-size: 0.9em;
-  line-height: 1;
-}
-
 .geo-chip-count {
   color: var(--gray);
   font-variant-numeric: tabular-nums;
   font-size: 0.9em;
-}
-
-.geo-chip-all {
-  color: var(--darkgray);
-  font-weight: 600;
-}
-
-.geo-pin {
-  cursor: pointer;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
-}
-
-.geo-pin-emoji {
-  width: auto;
-  height: auto;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent !important;
-  font-size: 20px;
-  line-height: 1;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.35);
 }
 
 // Theme-aware MapLibre popups (default is a hard white bubble).
@@ -203,4 +172,62 @@
 
 .maplibregl-ctrl-attrib {
   background: transparent !important;
+}
+
+// Filter bar layout: search + "From:" picker, chip rows, live count.
+.geo-filter {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.geo-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+
+  .geo-search {
+    flex: 1 1 14rem;
+    max-width: none;
+  }
+}
+
+.geo-from {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 16rem;
+  font-size: 0.85rem;
+  color: var(--gray);
+}
+
+.geo-chips-label {
+  min-width: 3.8rem;
+  color: var(--gray);
+  font-size: 0.78rem;
+}
+
+.geo-chip-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.geo-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--gray);
+  font-size: 0.8rem;
+}
+
+.geo-reset {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--secondary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
 }

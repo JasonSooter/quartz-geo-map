@@ -13,11 +13,11 @@ note, read from the note's **frontmatter**:
 
 ```yaml
 ---
-categories: ["[[Places]]"]   # whatever your base filters on
-coordinates: 48.8566,2.3522  # "lat,lng"
-color: green                 # CSS color for a dot marker
-icon: landmark               # place type → emoji (see below)
-flag: 🇫🇷                     # optional: emoji rendered as the marker
+categories: ["[[Places]]"] # whatever your base filters on
+coordinates: 48.8566,2.3522 # "lat,lng"
+color: green # CSS color for a dot marker
+icon: landmark # place type → emoji (see below)
+flag: 🇫🇷 # optional: emoji rendered as the marker
 ---
 ```
 
@@ -33,6 +33,7 @@ Tag a location **anywhere in any note body** and it appears on a generated
 
 ```markdown
 The estate is filmed at [Highclere Castle](geo:51.3268,-1.3617) #place/mention
+
 - [Louvre Museum](geo:48.8606,2.3376) #place/museum
 ```
 
@@ -58,8 +59,9 @@ Local plugin — referenced by path in `quartz.config.yaml`:
 ```yaml
 - source: ./plugins/geo-map
   enabled: true
-  order: 45   # MUST be < bases-page (50): the map view has to register
-              # before BasesBody snapshots the view registry.
+  order:
+    45 # MUST be < bases-page (50): the map view has to register
+    # before BasesBody snapshots the view registry.
 ```
 
 Rebuild the plugin after edits: `cd plugins/geo-map && npm run build` (commits
@@ -94,8 +96,8 @@ that mention it:
   ```markdown
   ## At a glance
 
-  | Source | Author | Role | In one line |
-  |---|---|---|---|
+  | Source                       | Author         | Role    | In one line                        |
+  | ---------------------------- | -------------- | ------- | ---------------------------------- |
   | [[Not the End of the World]] | Hannah Ritchie | subject | Why boycotting palm oil backfires. |
   ```
 
@@ -119,3 +121,20 @@ title shows every place it mentions.
 
 `description` fills the page's meta and link-preview description. `socialImage`
 sets its link-preview image; without it, og-image falls back to its default.
+
+## Clustering and filters
+
+Points are drawn as one clustered MapLibre layer, so nearby places merge into
+numbered bubbles at low zoom (click one to zoom in). Each point is coloured by
+medium, and the filter bar above the map narrows what is shown:
+
+- **Search** matches place names, source titles and authors.
+- **From** is a type-ahead over every source title; picking one shows only that
+  work's places and zooms to them. The choice is kept in the URL, so
+  `/map?from=Full%20Tilt` links straight to one book's places.
+- **Medium** chips (books, articles, videos, podcasts, travel) come from the
+  note's `icon`; **Role** chips fold each source's role into subject, setting,
+  journey, turning point, backdrop or other.
+
+With every chip in a row on, clicking one shows only that one; after that,
+clicks toggle chips on and off.
