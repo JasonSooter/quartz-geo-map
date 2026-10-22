@@ -2,7 +2,12 @@ import { viewRegistry } from "@quartz-community/bases-page";
 import { transformLink } from "@quartz-community/utils";
 import type { FullSlug } from "@quartz-community/types";
 import { MAP_CSS, MAP_SCRIPT } from "./assets";
-import { noteCoords, markerType, type GeoMarker } from "./markers";
+import {
+  noteCoords,
+  markerType,
+  markerMedium,
+  type GeoMarker,
+} from "./markers";
 
 // Minimal shape of what the bases-page ViewRegistry hands each renderer. We only
 // declare the fields this view reads to avoid coupling to unexported internals.
@@ -23,9 +28,18 @@ function render({ entries, slug, allSlugs, linkResolution }: RenderProps) {
   for (const entry of entries) {
     const coords = noteCoords(entry.properties);
     if (!coords) continue;
-    const color = typeof entry.properties.color === "string" ? entry.properties.color : undefined;
-    const flag = typeof entry.properties.flag === "string" ? entry.properties.flag : undefined;
-    const icon = typeof entry.properties.icon === "string" ? entry.properties.icon : undefined;
+    const color =
+      typeof entry.properties.color === "string"
+        ? entry.properties.color
+        : undefined;
+    const flag =
+      typeof entry.properties.flag === "string"
+        ? entry.properties.flag
+        : undefined;
+    const icon =
+      typeof entry.properties.icon === "string"
+        ? entry.properties.icon
+        : undefined;
     markers.push({
       title: entry.title,
       url: transformLink(slug as FullSlug, entry.slug, {
@@ -38,13 +52,16 @@ function render({ entries, slug, allSlugs, linkResolution }: RenderProps) {
       flag,
       icon,
       type: markerType({ icon, flag }),
+      medium: markerMedium(icon),
     });
   }
 
   return (
     <div class="geo-map-wrapper">
       {markers.length === 0 ? (
-        <div class="geo-map-empty">No mappable notes (missing a `coordinates` property).</div>
+        <div class="geo-map-empty">
+          No mappable notes (missing a `coordinates` property).
+        </div>
       ) : (
         <div class="geo-map" data-geo-markers={JSON.stringify(markers)} />
       )}
@@ -62,4 +79,6 @@ export const mapViewRegistration = {
 };
 
 // Register on side-effect import (component lifecycle).
-viewRegistry.register(mapViewRegistration as Parameters<typeof viewRegistry.register>[0]);
+viewRegistry.register(
+  mapViewRegistration as Parameters<typeof viewRegistry.register>[0],
+);
