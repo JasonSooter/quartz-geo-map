@@ -218,9 +218,10 @@ interface Named {
 function rankMatches(names: Named[], q: string, limit: number): Named[] {
   const score = (name: string) => {
     const l = name.toLowerCase();
-    if (l.startsWith(q)) return 0;
-    if (l.includes(` ${q}`)) return 1;
-    return l.includes(q) ? 2 : -1;
+    if (l === q) return 0;
+    if (l.startsWith(q)) return 1;
+    if (l.includes(` ${q}`)) return 2;
+    return l.includes(q) ? 3 : -1;
   };
   return names
     .map((x) => ({ x, s: q ? score(x.name) : 0 }))
@@ -319,22 +320,19 @@ function buildFilterBar(
     add("work", rankMatches([...works.values()], q, q ? 5 : 6));
     add("author", rankMatches([...authors.values()], q, q ? 4 : 3));
     if (q) {
-      pool
-        .filter((x) => x.m.title.toLowerCase().includes(q))
-        .sort(
-          (p, r) =>
-            Number(!p.m.title.toLowerCase().startsWith(q)) -
-            Number(!r.m.title.toLowerCase().startsWith(q)),
-        )
-        .slice(0, 5)
-        .forEach((x) =>
-          opts.push({
-            kind: "place",
-            key: x.m.title.toLowerCase(),
-            label: x.m.title,
-            m: x.m,
-          }),
-        );
+      rankMatches(
+        pool.map((x) => ({ name: x.m.title, n: -x.m.title.length, m: x.m })),
+        q,
+        5,
+      ).forEach((r) => {
+        const m = (r as Named & { m: GeoMarker }).m;
+        opts.push({
+          kind: "place",
+          key: m.title.toLowerCase(),
+          label: m.title,
+          m,
+        });
+      });
     }
     options = opts;
     cursor = -1;

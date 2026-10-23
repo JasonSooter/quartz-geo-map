@@ -274,6 +274,12 @@
     background: var(--highlight);
   }
 
+  .geo-chip-dot,
+  .geo-chip-count {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
   .geo-suggest-label {
     flex: 1 1 auto;
     overflow: hidden;
