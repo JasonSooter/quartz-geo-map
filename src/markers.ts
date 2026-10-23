@@ -26,6 +26,8 @@ export interface GeoMarker {
   roles?: string[];
   /** Titles of every source (uncapped), for the "From:" filter. */
   from?: string[];
+  /** Authors of every source (uncapped), for the author filter. */
+  by?: string[];
 }
 
 /** A work that mentions a place, from the note's "At a glance" table. */
@@ -184,14 +186,19 @@ const WIKILINK_RE = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]/g;
 
 /** Flatten markdown inline syntax (wikilinks, links, emphasis) to plain text. */
 export function plainText(md: string): string {
-  return md
-    .replace(WIKILINK_RE, (_m, target: string, alias?: string) =>
-      (alias ?? target).trim(),
-    )
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/[*_`]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    md
+      .replace(WIKILINK_RE, (_m, target: string, alias?: string) =>
+        (alias ?? target).trim(),
+      )
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      // Strip unescaped emphasis first, then turn Markdown escapes (`\[`, `\|`,
+      // `\*` …) into the literal character.
+      .replace(/(?<!\\)[*_`]/g, "")
+      .replace(/\\([\\`*_{}[\]()#+\-.!|~<>])/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 /** Strip YAML frontmatter from a raw markdown string. */

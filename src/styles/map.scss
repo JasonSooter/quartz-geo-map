@@ -192,15 +192,6 @@
   }
 }
 
-.geo-from {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex: 1 1 16rem;
-  font-size: 0.85rem;
-  color: var(--gray);
-}
-
 .geo-chips-label {
   min-width: 3.8rem;
   color: var(--gray);
@@ -230,4 +221,85 @@
   font: inherit;
   cursor: pointer;
   text-decoration: underline;
+}
+
+// Smart search: input with a grouped suggestion dropdown, plus active filter chips.
+.geo-combo {
+  position: relative;
+  flex: 1 1 16rem;
+  display: flex;
+
+  .geo-search {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+}
+
+.geo-suggest {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 0.3rem 0;
+  list-style: none;
+  max-height: 22rem;
+  overflow-y: auto;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  font-size: 0.85rem;
+}
+
+.geo-suggest-group {
+  padding: 0.35rem 0.75rem 0.15rem;
+  color: var(--gray);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.geo-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  color: var(--darkgray);
+
+  &:hover,
+  &[aria-selected="true"] {
+    background: var(--highlight);
+  }
+
+  .geo-chip-dot,
+  .geo-chip-count {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .geo-suggest-label {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.geo-active {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.geo-chip-x {
+  color: var(--gray);
+  font-size: 1.05em;
+  line-height: 1;
 }

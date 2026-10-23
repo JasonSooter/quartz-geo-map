@@ -141,12 +141,15 @@ function collectMarkers(
 
 function capSources(
   sources: GeoSource[],
-): Pick<GeoMarker, "sources" | "moreSources" | "roles" | "from"> {
+): Pick<GeoMarker, "sources" | "moreSources" | "roles" | "from" | "by"> {
   if (!sources.length) return {};
   const extra = sources.length - MAX_SOURCES;
   const filters = {
     roles: canonicalRoles(sources.map((s) => s.role)),
     from: [...new Set(sources.map((s) => s.title))],
+    by: [
+      ...new Set(sources.map((s) => s.author).filter((a): a is string => !!a)),
+    ],
   };
   return extra > 0
     ? { sources: sources.slice(0, MAX_SOURCES), moreSources: extra, ...filters }
