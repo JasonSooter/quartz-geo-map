@@ -65,6 +65,8 @@ interface GeoMarker {
   roles?: string[];
   /** Every source title (uncapped) — the "From:" filter. */
   from?: string[];
+  /** Every source author (uncapped) — the author filter. */
+  by?: string[];
 }
 
 interface GeoSource {
@@ -168,6 +170,8 @@ interface Indexed {
   roles: string[];
   /** Lowercased source titles, for the exact "From:" match. */
   from: string[];
+  /** Lowercased authors, for the exact author match. */
+  by: string[];
   /** Lowercased title + source titles + authors, for the search box. */
   haystack: string;
 }
@@ -178,6 +182,8 @@ interface FilterState {
   query: string;
   /** Lowercased source title, or "" for any. */
   from: string;
+  /** Lowercased author, or "" for any. */
+  by: string;
 }
 
 function matches(x: Indexed, f: FilterState): boolean {
@@ -185,6 +191,7 @@ function matches(x: Indexed, f: FilterState): boolean {
   // Places with no recorded role (travel places, inline mentions) ignore the role filter.
   if (x.roles.length && !x.roles.some((r) => f.roles.has(r))) return false;
   if (f.from && !x.from.includes(f.from)) return false;
+  if (f.by && !x.by.includes(f.by)) return false;
   if (f.query && !x.haystack.includes(f.query)) return false;
   return true;
 }
@@ -200,73 +207,276 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return e;
 }
 
-// Filter bar above the map: search, a "From:" source picker, medium and role
-// chips, and a live count. Every change calls `onChange`; the map re-renders
-// its clustered source from the matching markers.
+/** A display name and how many (currently matching) places it covers. */
+interface Named {
+  name: string;
+  n: number;
+  medium?: string;
+}
+
+/** Rank names by how well they match `q`: prefix, then word start, then anywhere. */
+function rankMatches(names: Named[], q: string, limit: number): Named[] {
+  const score = (name: string) => {
+    const l = name.toLowerCase();
+    if (l.startsWith(q)) return 0;
+    if (l.includes(` ${q}`)) return 1;
+    return l.includes(q) ? 2 : -1;
+  };
+  return names
+    .map((x) => ({ x, s: q ? score(x.name) : 0 }))
+    .filter((r) => r.s >= 0)
+    .sort(
+      (p, r) => p.s - r.s || r.x.n - p.x.n || p.x.name.localeCompare(r.x.name),
+    )
+    .slice(0, limit)
+    .map((r) => r.x);
+}
+
+// Filter bar above the map: one smart search box (free text plus suggestions
+// for works, authors and places), medium and role chips, and a live count.
+// Every change calls `onChange`; the map re-renders its clustered source.
 function buildFilterBar(
   wrapper: HTMLElement,
   container: HTMLElement,
   items: Indexed[],
   state: FilterState,
+  names: { works: Map<string, string>; authors: Map<string, string> },
   onChange: (refit: boolean) => void,
+  onPickPlace: (m: GeoMarker) => void,
 ): (shown: number) => void {
   const bar = el("div", "geo-filter");
+  const uid = Math.random().toString(36).slice(2, 8);
 
+  // ── Smart search: input + suggestion listbox + active filter chips ──
   const row = el("div", "geo-filter-row");
+  const combo = el("div", "geo-combo");
   const search = el("input", "geo-search");
   search.type = "search";
   search.placeholder = "Search places, books, authors…";
+  search.autocomplete = "off";
+  search.setAttribute("role", "combobox");
   search.setAttribute("aria-label", "Search places, books and authors");
+  search.setAttribute("aria-autocomplete", "list");
+  search.setAttribute("aria-expanded", "false");
+  const list = el("ul", "geo-suggest");
+  list.id = `geo-suggest-${uid}`;
+  list.setAttribute("role", "listbox");
+  list.hidden = true;
+  search.setAttribute("aria-controls", list.id);
+  combo.append(search, list);
+  const active = el("div", "geo-active");
+  row.append(combo, active);
+  bar.appendChild(row);
+
+  type Option = {
+    kind: "work" | "author" | "place";
+    key: string;
+    label: string;
+    n?: number;
+    medium?: string;
+    m?: GeoMarker;
+  };
+  let options: Option[] = [];
+  let cursor = -1;
+
+  const scoped = () => items.filter((x) => matches(x, { ...state, query: "" }));
+
+  const suggest = () => {
+    const q = search.value.trim().toLowerCase();
+    const pool = scoped();
+    const works = new Map<string, Named>();
+    const authors = new Map<string, Named>();
+    for (const x of pool) {
+      x.from.forEach((k) => {
+        const w = works.get(k);
+        if (w) w.n++;
+        else
+          works.set(k, {
+            name: names.works.get(k) ?? k,
+            n: 1,
+            medium: x.medium,
+          });
+      });
+      x.by.forEach((k) => {
+        const w = authors.get(k);
+        if (w) w.n++;
+        else authors.set(k, { name: names.authors.get(k) ?? k, n: 1 });
+      });
+    }
+    if (state.from) works.delete(state.from);
+    if (state.by) authors.delete(state.by);
+    const opts: Option[] = [];
+    const add = (kind: Option["kind"], xs: Named[]) =>
+      xs.forEach((w) =>
+        opts.push({
+          kind,
+          key: w.name.toLowerCase(),
+          label: w.name,
+          n: w.n,
+          medium: w.medium,
+        }),
+      );
+    add("work", rankMatches([...works.values()], q, q ? 5 : 6));
+    add("author", rankMatches([...authors.values()], q, q ? 4 : 3));
+    if (q) {
+      pool
+        .filter((x) => x.m.title.toLowerCase().includes(q))
+        .sort(
+          (p, r) =>
+            Number(!p.m.title.toLowerCase().startsWith(q)) -
+            Number(!r.m.title.toLowerCase().startsWith(q)),
+        )
+        .slice(0, 5)
+        .forEach((x) =>
+          opts.push({
+            kind: "place",
+            key: x.m.title.toLowerCase(),
+            label: x.m.title,
+            m: x.m,
+          }),
+        );
+    }
+    options = opts;
+    cursor = -1;
+    renderList();
+  };
+
+  const GROUP: Record<Option["kind"], string> = {
+    work: "Books, articles & videos",
+    author: "Authors",
+    place: "Places",
+  };
+  const renderList = () => {
+    list.replaceChildren();
+    let group = "";
+    options.forEach((o, i) => {
+      if (o.kind !== group) {
+        group = o.kind;
+        const h = el("li", "geo-suggest-group", GROUP[o.kind]);
+        h.setAttribute("role", "presentation");
+        list.appendChild(h);
+      }
+      const li = el("li", "geo-suggest-item");
+      li.id = `${list.id}-${i}`;
+      li.setAttribute("role", "option");
+      li.setAttribute("aria-selected", String(i === cursor));
+      if (o.medium) {
+        const dot = el("span", "geo-chip-dot");
+        dot.style.background =
+          MEDIA.find((d) => d.key === o.medium)?.color ?? "";
+        li.appendChild(dot);
+      }
+      li.appendChild(el("span", "geo-suggest-label", o.label));
+      if (o.n !== undefined)
+        li.appendChild(
+          el("span", "geo-chip-count", `${o.n} place${o.n === 1 ? "" : "s"}`),
+        );
+      // mousedown, not click: fires before the input's blur closes the list.
+      li.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        pick(o);
+      });
+      list.appendChild(li);
+    });
+    const open = options.length > 0 && document.activeElement === search;
+    list.hidden = !open;
+    search.setAttribute("aria-expanded", String(open));
+    if (cursor >= 0)
+      search.setAttribute("aria-activedescendant", `${list.id}-${cursor}`);
+    else search.removeAttribute("aria-activedescendant");
+  };
+  const close = () => {
+    list.hidden = true;
+    search.setAttribute("aria-expanded", "false");
+    search.removeAttribute("aria-activedescendant");
+  };
+
+  const renderActive = () => {
+    active.replaceChildren();
+    const chip = (label: string, clear: () => void) => {
+      const c = el("button", "geo-chip is-active geo-active-chip");
+      c.type = "button";
+      c.append(label, " ", el("span", "geo-chip-x", "×"));
+      c.setAttribute("aria-label", `Remove filter ${label}`);
+      c.addEventListener("click", () => {
+        clear();
+        renderActive();
+        onChange(true);
+        search.focus();
+      });
+      active.appendChild(c);
+    };
+    if (state.from)
+      chip(
+        `From: ${names.works.get(state.from) ?? state.from}`,
+        () => (state.from = ""),
+      );
+    if (state.by)
+      chip(
+        `By: ${names.authors.get(state.by) ?? state.by}`,
+        () => (state.by = ""),
+      );
+  };
+
+  const pick = (o: Option) => {
+    if (o.kind === "place" && o.m) {
+      close();
+      onPickPlace(o.m);
+      return;
+    }
+    if (o.kind === "work") state.from = o.key;
+    if (o.kind === "author") state.by = o.key;
+    // The chip now carries the filter; the box is free for keywords within it.
+    search.value = "";
+    state.query = "";
+    renderActive();
+    onChange(true);
+    suggest();
+  };
+
   search.addEventListener("input", () => {
     state.query = search.value.trim().toLowerCase();
     onChange(false);
+    suggest();
   });
-  row.appendChild(search);
-
-  // "From:" picker — a native type-ahead over every source, most places first.
-  const counts = new Map<string, { title: string; n: number }>();
-  for (const x of items)
-    for (const t of x.m.from ?? []) {
-      const k = t.toLowerCase();
-      const c = counts.get(k);
-      if (c) c.n++;
-      else counts.set(k, { title: t, n: 1 });
+  search.addEventListener("focus", suggest);
+  search.addEventListener("blur", close);
+  search.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (!options.length) return;
+      e.preventDefault();
+      if (list.hidden) suggest();
+      const n = options.length;
+      cursor =
+        e.key === "ArrowDown"
+          ? (cursor + 1) % n
+          : cursor <= 0
+            ? n - 1
+            : cursor - 1;
+      renderList();
+    } else if (e.key === "Enter") {
+      if (cursor >= 0 && options[cursor]) {
+        e.preventDefault();
+        pick(options[cursor]);
+      } else close();
+    } else if (e.key === "Escape") {
+      if (!list.hidden) {
+        e.preventDefault();
+        close();
+      }
+    } else if (
+      e.key === "Backspace" &&
+      !search.value &&
+      (state.by || state.from)
+    ) {
+      // Backspace in an empty box removes the last filter chip.
+      if (state.by) state.by = "";
+      else state.from = "";
+      renderActive();
+      onChange(true);
     }
-  const listId = `geo-from-${Math.random().toString(36).slice(2, 8)}`;
-  const list = el("datalist", "");
-  list.id = listId;
-  [...counts.values()]
-    .sort((a, b) => b.n - a.n || a.title.localeCompare(b.title))
-    .forEach((c) => {
-      const o = document.createElement("option");
-      o.value = c.title;
-      o.label = `${c.n} place${c.n === 1 ? "" : "s"}`;
-      list.appendChild(o);
-    });
-  const fromWrap = el("label", "geo-from");
-  fromWrap.appendChild(el("span", "geo-from-label", "From"));
-  const from = el("input", "geo-search geo-from-input");
-  from.type = "search";
-  from.placeholder = "any book, article or video";
-  from.setAttribute("list", listId);
-  from.setAttribute(
-    "aria-label",
-    "Show places from one book, article or video",
-  );
-  from.value = counts.get(state.from)?.title ?? "";
-  const applyFrom = () => {
-    const k = from.value.trim().toLowerCase();
-    // Only an exact source title filters; partial typing just drives the suggestions.
-    const next = counts.has(k) ? k : "";
-    if (next === state.from) return;
-    state.from = next;
-    onChange(true);
-  };
-  from.addEventListener("input", applyFrom);
-  from.addEventListener("change", applyFrom);
-  fromWrap.append(from, list);
-  row.appendChild(fromWrap);
-  bar.appendChild(row);
+  });
+  renderActive();
 
   const chipRow = (
     label: string,
@@ -292,12 +502,11 @@ function buildFilterBar(
         " ",
         el("span", "geo-chip-count", String(count(d.key))),
       );
+      chip.title = `Show only ${d.label.toLowerCase()}; click others to add them`;
       // With everything on, a click shows only that chip; after that clicks
       // toggle, and turning the last one off restores all.
-      chip.title = `Show only ${d.label.toLowerCase()}; click others to add them`;
       chip.addEventListener("click", () => {
         if (present.every((p) => active.has(p.key))) {
-          // First click when everything is on: show only this one.
           active.clear();
           active.add(d.key);
         } else if (active.has(d.key)) {
@@ -340,12 +549,15 @@ function buildFilterBar(
     ROLES.forEach((d) => state.roles.add(d.key));
     state.query = "";
     state.from = "";
+    state.by = "";
     search.value = "";
-    from.value = "";
-    bar.querySelectorAll<HTMLButtonElement>(".geo-chip").forEach((c) => {
-      c.classList.add("is-active");
-      c.setAttribute("aria-pressed", "true");
-    });
+    renderActive();
+    bar
+      .querySelectorAll<HTMLButtonElement>(".geo-chips .geo-chip")
+      .forEach((c) => {
+        c.classList.add("is-active");
+        c.setAttribute("aria-pressed", "true");
+      });
     onChange(true);
   });
   status.append(shownEl, reset);
@@ -357,16 +569,18 @@ function buildFilterBar(
       shown === items.length
         ? `${items.length} places`
         : `Showing ${shown} of ${items.length} places`;
-    reset.hidden = shown === items.length && !state.from;
+    reset.hidden = shown === items.length && !state.from && !state.by;
   };
 }
 
-/** Keep `?from=` in the address bar so a filtered view can be shared. */
-function syncUrl(from: string, title: string | undefined) {
+/** Keep `?from=` / `?by=` in the address bar so a filtered view can be shared. */
+function syncUrl(params: Record<string, string | undefined>) {
   try {
     const url = new URL(window.location.href);
-    if (from && title) url.searchParams.set("from", title);
-    else url.searchParams.delete("from");
+    for (const [k, v] of Object.entries(params)) {
+      if (v) url.searchParams.set(k, v);
+      else url.searchParams.delete(k);
+    }
     window.history.replaceState(window.history.state, "", url);
   } catch {
     // History API unavailable (sandboxed preview); filtering still works.
@@ -393,23 +607,38 @@ function initGeoMaps(maplibregl: MapLibre) {
       medium: mediumOf(m),
       roles: m.roles ?? [],
       from: (m.from ?? []).map((t) => t.toLowerCase()),
+      by: (m.by ?? []).map((t) => t.toLowerCase()),
       haystack: [
         m.title,
         ...(m.sources ?? []).flatMap((s) => [s.title, s.author]),
         ...(m.from ?? []),
+        ...(m.by ?? []),
       ]
         .filter(Boolean)
         .join("\n")
         .toLowerCase(),
     }));
 
+    // Lowercased key → display name, for chips, suggestions and the URL.
+    const names = {
+      works: new Map<string, string>(),
+      authors: new Map<string, string>(),
+    };
+    for (const m of markers) {
+      m.from?.forEach((t) => names.works.set(t.toLowerCase(), t));
+      m.by?.forEach((t) => names.authors.set(t.toLowerCase(), t));
+    }
+    const params = new URLSearchParams(window.location.search);
+    const fromParam = (k: string, known: Map<string, string>) => {
+      const v = (params.get(k) ?? "").trim().toLowerCase();
+      return known.has(v) ? v : "";
+    };
     const state: FilterState = {
       media: new Set(MEDIA.map((d) => d.key)),
       roles: new Set(ROLES.map((d) => d.key)),
       query: "",
-      from: (new URLSearchParams(window.location.search).get("from") ?? "")
-        .trim()
-        .toLowerCase(),
+      from: fromParam("from", names.works),
+      by: fromParam("by", names.authors),
     };
 
     const map = new maplibregl.Map({
@@ -577,10 +806,10 @@ function initGeoMaps(maplibregl: MapLibre) {
       )?.setData?.(data);
       popup.remove();
       setStatus(xs.length);
-      const fromTitle = state.from
-        ? xs[0]?.m.from?.find((t) => t.toLowerCase() === state.from)
-        : undefined;
-      syncUrl(state.from, fromTitle);
+      syncUrl({
+        from: names.works.get(state.from),
+        by: names.authors.get(state.by),
+      });
       if (refit) fit(xs);
     };
 
@@ -590,7 +819,27 @@ function initGeoMaps(maplibregl: MapLibre) {
       wrapper.classList.contains("geo-map-wrapper") &&
       !wrapper.querySelector(".geo-filter")
     ) {
-      setStatus = buildFilterBar(wrapper, container, items, state, render);
+      setStatus = buildFilterBar(
+        wrapper,
+        container,
+        items,
+        state,
+        names,
+        render,
+        (m) => {
+          // A place picked from search: zoom in close and pin its popup.
+          pinned = false;
+          show(m);
+          pinned = true;
+          const lift = Math.min(120, container.clientHeight / 4);
+          map.easeTo({
+            center: [m.lng, m.lat],
+            zoom: Math.max(map.getZoom(), 9),
+            offset: [0, -lift],
+            duration: 600,
+          });
+        },
+      );
     }
 
     map.on("style.load", addLayers);
@@ -658,7 +907,7 @@ function initGeoMaps(maplibregl: MapLibre) {
     // A `?from=` link zooms to that work's places; otherwise frame everything.
     const fitInitial = () => {
       map.resize();
-      fit(state.from ? filtered() : items);
+      fit(state.from || state.by ? filtered() : items);
     };
     // The bases view-switcher keeps inactive views hidden, so the container can
     // be zero-size at init; fit again once it has a size.

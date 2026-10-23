@@ -26,6 +26,8 @@ export interface GeoMarker {
   roles?: string[];
   /** Titles of every source (uncapped), for the "From:" filter. */
   from?: string[];
+  /** Authors of every source (uncapped), for the author filter. */
+  by?: string[];
 }
 
 /** A work that mentions a place, from the note's "At a glance" table. */
