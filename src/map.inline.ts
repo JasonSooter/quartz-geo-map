@@ -585,6 +585,18 @@ function syncUrl(params: Record<string, string | undefined>) {
   }
 }
 
+// Zoom limits, and the furthest latitude Web Mercator can draw.
+const MIN_ZOOM = 0;
+const MAX_ZOOM = 22;
+const MAX_LAT = 85.051129;
+const clamp = (v: number, lo: number, hi: number) =>
+  Math.min(hi, Math.max(lo, v));
+// The zoom at which one world (512px wide at zoom 0) spans the container.
+const fillWidthZoom = (el: HTMLElement) =>
+  el.clientWidth > 0
+    ? clamp(Math.log2(el.clientWidth / 512), MIN_ZOOM, MAX_ZOOM)
+    : MIN_ZOOM;
+
 function initGeoMaps(maplibregl: MapLibre) {
   document.querySelectorAll<HTMLElement>(".geo-map").forEach((node) => {
     const container = node as HTMLElement & { _geoMap?: MLMap };
@@ -644,8 +656,23 @@ function initGeoMaps(maplibregl: MapLibre) {
       style: styleUrl(),
       center: [0, 25],
       zoom: 1,
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
       // One world, not side-by-side copies at low zoom.
       renderWorldCopies: false,
+      // MapLibre's default constraint for a single world stops the viewport
+      // *edge* at ±180° and ±85°, so a point near the antimeridian or the top
+      // of the map stays pinned to the screen edge, half cut off, and its
+      // popup opens off-screen. Clamp the *centre* instead, so every point can
+      // be panned to the middle of the map. Zooming out still stops once the
+      // world fills the map's width, so there are no empty bands at the sides.
+      transformConstrain: (lngLat, zoom) => ({
+        center: new maplibregl.LngLat(
+          clamp(lngLat.lng, -180, 180),
+          clamp(lngLat.lat, -MAX_LAT, MAX_LAT),
+        ),
+        zoom: clamp(zoom, fillWidthZoom(container), MAX_ZOOM),
+      }),
       attributionControl: false,
     });
     container._geoMap = map;
