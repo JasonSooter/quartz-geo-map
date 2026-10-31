@@ -585,12 +585,45 @@ function syncUrl(params: Record<string, string | undefined>) {
   }
 }
 
-// Zoom limits, and the furthest latitude Web Mercator can draw.
 const MIN_ZOOM = 0;
 const MAX_ZOOM = 22;
-const MAX_LAT = 85.051129;
 const clamp = (v: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, v));
+
+/**
+ * The tightest [[west, south], [east, north]] box around the points, allowing
+ * it to cross the antimeridian (east may then exceed 180), so places either
+ * side of ±180° frame as neighbours rather than as the whole world.
+ */
+function wrappedBounds(
+  pts: { lng: number; lat: number }[],
+): [[number, number], [number, number]] {
+  const lats = pts.map((p) => p.lat);
+  const lngs = pts.map((p) => p.lng).sort((a, b) => a - b);
+  // Put the box's open side in the widest gap between neighbouring longitudes
+  // (including the gap that wraps from the last back round to the first).
+  let gap = lngs[0] + 360 - lngs[lngs.length - 1];
+  let west = lngs[0];
+  let east = lngs[lngs.length - 1];
+  for (let i = 1; i < lngs.length; i++) {
+    const g = lngs[i] - lngs[i - 1];
+    if (g > gap) {
+      gap = g;
+      west = lngs[i];
+      east = lngs[i - 1] + 360;
+    }
+  }
+  // Only cross the antimeridian when that makes a much tighter box; points
+  // spread round the globe keep the usual Greenwich-centred framing.
+  if (east - west > 180) {
+    west = lngs[0];
+    east = lngs[lngs.length - 1];
+  }
+  return [
+    [west, Math.min(...lats)],
+    [east, Math.max(...lats)],
+  ];
+}
 // The zoom at which one world (512px wide at zoom 0) spans the container.
 const fillWidthZoom = (el: HTMLElement) =>
   el.clientWidth > 0
@@ -656,26 +689,18 @@ function initGeoMaps(maplibregl: MapLibre) {
       style: styleUrl(),
       center: [0, 25],
       zoom: 1,
-      minZoom: MIN_ZOOM,
+      minZoom: fillWidthZoom(container),
       maxZoom: MAX_ZOOM,
-      // One world, not side-by-side copies at low zoom.
-      renderWorldCopies: false,
-      // MapLibre's default constraint for a single world stops the viewport
-      // *edge* at ±180° and ±85°, so a point near the antimeridian or the top
-      // of the map stays pinned to the screen edge, half cut off, and its
-      // popup opens off-screen. Clamp the *centre* instead, so every point can
-      // be panned to the middle of the map. Zooming out still stops once the
-      // world fills the map's width, so there are no empty bands at the sides.
-      transformConstrain: (lngLat, zoom) => ({
-        center: new maplibregl.LngLat(
-          clamp(lngLat.lng, -180, 180),
-          clamp(lngLat.lat, -MAX_LAT, MAX_LAT),
-        ),
-        zoom: clamp(zoom, fillWidthZoom(container), MAX_ZOOM),
-      }),
+      // The world wraps east–west, so panning past the antimeridian carries on
+      // into the other side of the Pacific instead of hitting a blank edge, and
+      // places near ±180° (Fiji, Samoa, Kiribati) can sit mid-map.
+      renderWorldCopies: true,
       attributionControl: false,
     });
     container._geoMap = map;
+    // Zoom-out stops once one world fills the map's width, so it never shows
+    // several copies of the world side by side.
+    map.on("resize", () => map.setMinZoom(fillWidthZoom(container)));
     map.addControl(
       new maplibregl.AttributionControl({ compact: true }),
       "bottom-right",
@@ -746,9 +771,7 @@ function initGeoMaps(maplibregl: MapLibre) {
         });
         return;
       }
-      const b = new maplibregl.LngLatBounds();
-      xs.forEach((x) => b.extend([x.m.lng, x.m.lat]));
-      map.fitBounds(b, {
+      map.fitBounds(wrappedBounds(xs.map((x) => x.m)), {
         padding: 50,
         maxZoom: 8,
         duration: map.loaded() ? 500 : 0,
