@@ -138,3 +138,20 @@ medium, and the filter bar above the map narrows what is shown:
 
 With every chip in a row on, clicking one shows only that one; after that,
 clicks toggle chips on and off.
+
+## Developing: standalone preview
+
+To work on the map without building a Quartz site:
+
+```sh
+npm run preview
+# geo-map preview: http://localhost:4173/
+```
+
+The page renders the map with the sample places in
+[`preview/markers.json`](preview/markers.json), with the same search, filter chips, clustering and popups as the `/map` page. The samples include edge cases: points by the antimeridian (Fiji, Taveuni, Apia, Uelen), near the poles (Longyearbyen, McMurdo), and a tight cluster in Paris.
+
+Each page load rebuilds the client script and styles from `src/`, so after editing `src/map.inline.ts` or `src/styles/map.scss`, just refresh. **Toggle theme** switches the light and dark basemaps.
+
+- `MARKERS=path/to/markers.json npm run preview` uses your own data: a JSON array of `GeoMarker` objects, as defined in `src/markers.ts`. To try your real places, copy the `data-geo-markers` attribute from a published `/map` page.
+- `PORT=5000 npm run preview` changes the port.

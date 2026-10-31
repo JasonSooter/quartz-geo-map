@@ -1,0 +1,505 @@
+[
+  {
+    "title": "Taveuni",
+    "url": "#taveuni",
+    "lat": -16.85,
+    "lng": 179.97,
+    "icon": "landmark",
+    "type": "landmark",
+    "summary": "Island the 180th meridian runs across.",
+    "sources": [
+      {
+        "title": "Dateline: The Antimeridian",
+        "author": "Sample Creator",
+        "role": "subject",
+        "line": "Standing with a foot in each day."
+      }
+    ],
+    "medium": "video",
+    "roles": [
+      "subject"
+    ],
+    "from": [
+      "Dateline: The Antimeridian"
+    ],
+    "by": [
+      "Sample Creator"
+    ]
+  },
+  {
+    "title": "Fiji",
+    "url": "#fiji",
+    "lat": -17.71,
+    "lng": 178.07,
+    "icon": null,
+    "type": "country",
+    "summary": "Edge case: a country pin near the antimeridian.",
+    "sources": [
+      {
+        "title": "Notes from the Edge of the Map",
+        "author": "Sample Author",
+        "role": "setting",
+        "line": "Where the map wraps."
+      }
+    ],
+    "medium": "article",
+    "roles": [
+      "setting"
+    ],
+    "from": [
+      "Notes from the Edge of the Map"
+    ],
+    "by": [
+      "Sample Author"
+    ],
+    "flag": "🇫🇯"
+  },
+  {
+    "title": "Apia",
+    "url": "#apia",
+    "lat": -13.83,
+    "lng": -171.77,
+    "icon": "city",
+    "type": "city",
+    "summary": "Just east of the date line.",
+    "sources": [
+      {
+        "title": "Dateline: The Antimeridian",
+        "author": "Sample Creator",
+        "role": "journey",
+        "line": "Crossing back a day."
+      }
+    ],
+    "medium": "video",
+    "roles": [
+      "journey"
+    ],
+    "from": [
+      "Dateline: The Antimeridian"
+    ],
+    "by": [
+      "Sample Creator"
+    ]
+  },
+  {
+    "title": "Uelen",
+    "url": "#uelen",
+    "lat": 66.16,
+    "lng": -169.81,
+    "icon": "city",
+    "type": "city",
+    "summary": "Easternmost settlement in Asia, west of 180°.",
+    "sources": [
+      {
+        "title": "Notes from the Edge of the Map",
+        "author": "Sample Author",
+        "role": "subject",
+        "line": "Far north and far east at once."
+      }
+    ],
+    "medium": "article",
+    "roles": [
+      "subject"
+    ],
+    "from": [
+      "Notes from the Edge of the Map"
+    ],
+    "by": [
+      "Sample Author"
+    ]
+  },
+  {
+    "title": "Longyearbyen",
+    "url": "#longyearbyen",
+    "lat": 78.22,
+    "lng": 15.63,
+    "icon": "city",
+    "type": "city",
+    "summary": "Edge case: high-latitude point.",
+    "sources": [
+      {
+        "title": "Notes from the Edge of the Map",
+        "author": "Sample Author",
+        "role": "backdrop",
+        "line": "Near the top of the Mercator map."
+      }
+    ],
+    "medium": "article",
+    "roles": [
+      "backdrop"
+    ],
+    "from": [
+      "Notes from the Edge of the Map"
+    ],
+    "by": [
+      "Sample Author"
+    ]
+  },
+  {
+    "title": "McMurdo Station",
+    "url": "#mcmurdo-station",
+    "lat": -77.85,
+    "lng": 166.67,
+    "icon": "landmark",
+    "type": "landmark",
+    "summary": "Edge case: far south, near the antimeridian.",
+    "sources": [
+      {
+        "title": "Notes from the Edge of the Map",
+        "author": "Sample Author",
+        "role": "setting",
+        "line": "Bottom edge of the map."
+      }
+    ],
+    "medium": "article",
+    "roles": [
+      "setting"
+    ],
+    "from": [
+      "Notes from the Edge of the Map"
+    ],
+    "by": [
+      "Sample Author"
+    ]
+  },
+  {
+    "title": "Wellington",
+    "url": "#wellington",
+    "lat": -41.29,
+    "lng": 174.78,
+    "icon": "city",
+    "type": "city",
+    "summary": "Close to the eastern edge of the map.",
+    "sources": [
+      {
+        "title": "Dateline: The Antimeridian",
+        "author": "Sample Creator",
+        "role": "backdrop",
+        "line": "Last stop before the date line."
+      }
+    ],
+    "medium": "video",
+    "roles": [
+      "backdrop"
+    ],
+    "from": [
+      "Dateline: The Antimeridian"
+    ],
+    "by": [
+      "Sample Creator"
+    ]
+  },
+  {
+    "title": "Grytviken",
+    "url": "#grytviken",
+    "lat": -54.28,
+    "lng": -36.51,
+    "icon": "landmark",
+    "type": "landmark",
+    "summary": "Whaling station where Shackleton's rescue began.",
+    "sources": [
+      {
+        "title": "Endurance",
+        "author": "Alfred Lansing",
+        "role": "turning point",
+        "line": "Shackleton reaches help."
+      }
+    ],
+    "medium": "book",
+    "roles": [
+      "turning point"
+    ],
+    "from": [
+      "Endurance"
+    ],
+    "by": [
+      "Alfred Lansing"
+    ]
+  },
+  {
+    "title": "Callao",
+    "url": "#callao",
+    "lat": -12.05,
+    "lng": -77.15,
+    "icon": "city",
+    "type": "city",
+    "summary": "Port the Kon-Tiki raft sailed from.",
+    "sources": [
+      {
+        "title": "Kon-Tiki",
+        "author": "Thor Heyerdahl",
+        "role": "journey",
+        "line": "The raft is towed out to sea."
+      }
+    ],
+    "medium": "book",
+    "roles": [
+      "journey"
+    ],
+    "from": [
+      "Kon-Tiki"
+    ],
+    "by": [
+      "Thor Heyerdahl"
+    ]
+  },
+  {
+    "title": "Raroia",
+    "url": "#raroia",
+    "lat": -16.0,
+    "lng": -142.4,
+    "icon": "landmark",
+    "type": "landmark",
+    "summary": "Atoll where the Kon-Tiki ran aground.",
+    "sources": [
+      {
+        "title": "Kon-Tiki",
+        "author": "Thor Heyerdahl",
+        "role": "turning point",
+        "line": "The raft wrecks on the reef."
+      }
+    ],
+    "medium": "book",
+    "roles": [
+      "turning point"
+    ],
+    "from": [
+      "Kon-Tiki"
+    ],
+    "by": [
+      "Thor Heyerdahl"
+    ]
+  },
+  {
+    "title": "Nantucket",
+    "url": "#nantucket",
+    "lat": 41.28,
+    "lng": -70.1,
+    "icon": "city",
+    "type": "city",
+    "summary": "Whaling island where Ishmael sets out.",
+    "sources": [
+      {
+        "title": "Moby-Dick",
+        "author": "Herman Melville",
+        "role": "setting",
+        "line": "Ishmael signs on to the Pequod."
+      }
+    ],
+    "medium": "book",
+    "roles": [
+      "setting"
+    ],
+    "from": [
+      "Moby-Dick"
+    ],
+    "by": [
+      "Herman Melville"
+    ]
+  },
+  {
+    "title": "New Bedford",
+    "url": "#new-bedford",
+    "lat": 41.64,
+    "lng": -70.93,
+    "icon": "city",
+    "type": "city",
+    "summary": "Whaling port where the story opens.",
+    "sources": [
+      {
+        "title": "Moby-Dick",
+        "author": "Herman Melville",
+        "role": "setting",
+        "line": "The Spouter-Inn."
+      }
+    ],
+    "medium": "book",
+    "roles": [
+      "setting"
+    ],
+    "from": [
+      "Moby-Dick"
+    ],
+    "by": [
+      "Herman Melville"
+    ]
+  },
+  {
+    "title": "Reykjavik",
+    "url": "#reykjavik",
+    "lat": 64.15,
+    "lng": -21.94,
+    "icon": "city",
+    "type": "city",
+    "summary": "A plain mid-map point with no sources.",
+    "sources": [],
+    "medium": "travel",
+    "roles": [
+      "other"
+    ],
+    "from": [],
+    "by": []
+  },
+  {
+    "title": "Tokyo",
+    "url": "#tokyo",
+    "lat": 35.69,
+    "lng": 139.69,
+    "icon": "city",
+    "type": "city",
+    "summary": "A plain mid-map point.",
+    "sources": [
+      {
+        "title": "Notes from the Edge of the Map",
+        "author": "Sample Author",
+        "role": "other",
+        "line": "Mentioned in passing."
+      }
+    ],
+    "medium": "article",
+    "roles": [
+      "other"
+    ],
+    "from": [
+      "Notes from the Edge of the Map"
+    ],
+    "by": [
+      "Sample Author"
+    ]
+  },
+  {
+    "title": "Paris",
+    "url": "#paris",
+    "lat": 48.86,
+    "lng": 2.35,
+    "icon": "city",
+    "type": "city",
+    "summary": "Hemingway's Paris of the 1920s.",
+    "sources": [
+      {
+        "title": "A Moveable Feast",
+        "author": "Ernest Hemingway",
+        "role": "setting",
+        "line": "Cafés of the Left Bank."
+      }
+    ],
+    "medium": "book",
+    "roles": [
+      "setting"
+    ],
+    "from": [
+      "A Moveable Feast"
+    ],
+    "by": [
+      "Ernest Hemingway"
+    ]
+  },
+  {
+    "title": "Montmartre",
+    "url": "#montmartre",
+    "lat": 48.886,
+    "lng": 2.343,
+    "icon": "landmark",
+    "type": "landmark",
+    "summary": "Hilltop quarter in Paris.",
+    "sources": [
+      {
+        "title": "A Moveable Feast",
+        "author": "Ernest Hemingway",
+        "role": "backdrop",
+        "line": "A walk up the hill."
+      }
+    ],
+    "medium": "book",
+    "roles": [
+      "backdrop"
+    ],
+    "from": [
+      "A Moveable Feast"
+    ],
+    "by": [
+      "Ernest Hemingway"
+    ]
+  },
+  {
+    "title": "Shakespeare and Company",
+    "url": "#shakespeare-and-company",
+    "lat": 48.853,
+    "lng": 2.347,
+    "icon": "landmark",
+    "type": "landmark",
+    "summary": "Sylvia Beach's bookshop.",
+    "sources": [
+      {
+        "title": "A Moveable Feast",
+        "author": "Ernest Hemingway",
+        "role": "subject",
+        "line": "Borrowing books on credit."
+      }
+    ],
+    "medium": "book",
+    "roles": [
+      "subject"
+    ],
+    "from": [
+      "A Moveable Feast"
+    ],
+    "by": [
+      "Ernest Hemingway"
+    ]
+  },
+  {
+    "title": "Versailles",
+    "url": "#versailles",
+    "lat": 48.8,
+    "lng": 2.12,
+    "icon": "landmark",
+    "type": "landmark",
+    "summary": "Palace outside Paris.",
+    "sources": [
+      {
+        "title": "Notes from the Edge of the Map",
+        "author": "Sample Author",
+        "role": "other",
+        "line": "A day trip."
+      }
+    ],
+    "medium": "article",
+    "roles": [
+      "other"
+    ],
+    "from": [
+      "Notes from the Edge of the Map"
+    ],
+    "by": [
+      "Sample Author"
+    ]
+  },
+  {
+    "title": "London",
+    "url": "#london",
+    "lat": 51.51,
+    "lng": -0.13,
+    "icon": "city",
+    "type": "city",
+    "summary": "Nearby city outside the cluster.",
+    "sources": [
+      {
+        "title": "Moby-Dick",
+        "author": "Herman Melville",
+        "role": "other",
+        "line": "Mentioned in the Extracts."
+      }
+    ],
+    "medium": "book",
+    "roles": [
+      "other"
+    ],
+    "from": [
+      "Moby-Dick"
+    ],
+    "by": [
+      "Herman Melville"
+    ]
+  }
+]
