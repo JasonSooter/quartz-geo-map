@@ -29,11 +29,11 @@ jobs:
 
       - name: Verify dist is up to date
         run: |
-          if git diff --quiet dist/; then
+          if [ -z "$(git status --porcelain dist/)" ]; then
             echo "dist/ is up to date"
           else
             echo "::error::dist/ is stale. Run 'npm run build' and commit the result."
-            git diff --stat dist/
+            git status --porcelain dist/
             exit 1
           fi
       - name: Verify dist externals
@@ -41,13 +41,13 @@ jobs:
           node -e "
           const fs = require('fs');
           const dist = 'dist/index.js';
-          if (!fs.existsSync(dist)) process.exit(0);
+          if (!fs.existsSync(dist)) { console.error('ERROR: ' + dist + ' is missing; the externals check cannot run.'); process.exit(1); }
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
           const peerDeps = Object.keys(pkg.peerDependencies || {});
           const builtins = new Set(['assert','buffer','child_process','cluster','console','constants','crypto','dgram','dns','domain','events','fs','http','http2','https','inspector','module','net','os','path','perf_hooks','process','punycode','querystring','readline','repl','stream','string_decoder','sys','timers','tls','trace_events','tty','url','util','v8','vm','wasi','worker_threads','zlib']);
-          const shared = ['@quartz-community/','preact','@jackyzha0/quartz','vfile','unified'];
+          const shared = ['preact','@jackyzha0/quartz','vfile','unified'];
           const content = fs.readFileSync(dist, 'utf-8');
-          const re = /^\s*(?:import\s+.*\s+from|export\s+.*\s+from)\s+[\"']([^\"'./][^\"']*)[\"']/gm;
+          const re = /^\s*(?:import\s+(?:.*\s+from\s+)?|export\s+.*\s+from\s+)[\"']([^\"'./][^\"']*)[\"']/gm;
           const unexpected = new Set();
           for (const m of content.matchAll(re)) {
             const s = m[1];
