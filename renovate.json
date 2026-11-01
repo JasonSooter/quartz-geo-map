@@ -1,4 +1,18 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>JasonSooter/renovate-config"]
+  "extends": [
+    "local>JasonSooter/renovate-config"
+  ],
+  "packageRules": [
+    {
+      "description": "preact is shared with the Quartz site that loads this plugin (Quartz 5.0 runs preact 10), so a major bump here could break rendering. Move it only together with Quartz.",
+      "matchPackageNames": [
+        "preact"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    }
+  ]
 }
