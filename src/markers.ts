@@ -22,6 +22,12 @@ export interface GeoMarker {
   moreSources?: number;
   /** What kind of work mentions it: book/article/video/podcast, else "travel". */
   medium?: string;
+  /**
+   * Every medium the place appears under in the filter. A travel note that also
+   * has reading sections is both "travel" and its reading medium. Defaults to
+   * `[medium]`.
+   */
+  media?: string[];
   /** Canonical roles across all sources (subject/setting/journey/turning point/backdrop/other). */
   roles?: string[];
   /** Titles of every source (uncapped), for the "From:" filter. */
@@ -100,6 +106,26 @@ export function markerMedium(icon: string | undefined): string {
     default:
       return "travel";
   }
+}
+
+/**
+ * The media a note-level pin is filed under. A pin whose own icon is a reading
+ * icon has just that medium. A travel pin (flag, city…) that also carries
+ * reading sources keeps "travel" and adds the reading medium, taken from the
+ * note's `reading_icon` (book/newspaper/video/podcast), else "book".
+ */
+export function markerMedia(
+  icon: string | undefined,
+  { readingIcon, hasSources }: { readingIcon?: string; hasSources?: boolean },
+): string[] {
+  const primary = markerMedium(icon);
+  if (primary !== "travel") return [primary];
+  const readingMedium = readingIcon
+    ? markerMedium(readingIcon)
+    : hasSources
+      ? "book"
+      : "travel";
+  return readingMedium === "travel" ? [primary] : [primary, readingMedium];
 }
 
 /** Fold free-text roles ("journey waypoint", "setting / subject") into filter buckets. */
