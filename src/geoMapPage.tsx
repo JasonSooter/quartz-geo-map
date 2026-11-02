@@ -13,6 +13,7 @@ import {
   noteCoords,
   tagToIcon,
   markerType,
+  markerMedia,
   markerMedium,
   canonicalRoles,
   type GeoMarker,
@@ -101,6 +102,9 @@ function collectMarkers(
     if (coords) {
       const flag = typeof fm.flag === "string" ? fm.flag : undefined;
       const icon = typeof fm.icon === "string" ? fm.icon : undefined;
+      const sources = resolveSources(
+        (file.geoSources ?? []) as RawGeoSource[],
+      );
       markers.push({
         title,
         url,
@@ -111,10 +115,13 @@ function collectMarkers(
         icon,
         type: markerType({ icon, flag }),
         medium: markerMedium(icon),
+        media: markerMedia(icon, {
+          readingIcon:
+            typeof fm.reading_icon === "string" ? fm.reading_icon : undefined,
+          hasSources: sources.length > 0,
+        }),
         summary,
-        ...capSources(
-          resolveSources((file.geoSources ?? []) as RawGeoSource[]),
-        ),
+        ...capSources(sources),
       });
     }
 

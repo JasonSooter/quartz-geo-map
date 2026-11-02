@@ -61,6 +61,8 @@ interface GeoMarker {
   moreSources?: number;
   /** book/article/video/podcast/travel — the medium filter. */
   medium?: string;
+  /** Every medium the place is filed under (travel + reading for a merged travel note). */
+  media?: string[];
   /** Canonical roles across all sources — the role filter. */
   roles?: string[];
   /** Every source title (uncapped) — the "From:" filter. */
@@ -163,10 +165,18 @@ function mediumOf(m: GeoMarker): string {
   return m.medium || (m.type === "literary" ? "book" : "travel");
 }
 
+/** Every medium the marker is filed under (see `GeoMarker.media`). */
+function mediaOf(marker: GeoMarker): string[] {
+  return marker.media?.length ? marker.media : [mediumOf(marker)];
+}
+
 /** Everything the filters need, computed once per marker. */
 interface Indexed {
   m: GeoMarker;
+  /** Primary medium: drives the marker's colour and suggestion chips. */
   medium: string;
+  /** Every medium the marker matches in the Medium filter. */
+  media: string[];
   roles: string[];
   /** Lowercased source titles, for the exact "From:" match. */
   from: string[];
@@ -187,7 +197,7 @@ interface FilterState {
 }
 
 function matches(x: Indexed, f: FilterState): boolean {
-  if (!f.media.has(x.medium)) return false;
+  if (!x.media.some((medium) => f.media.has(medium))) return false;
   // Places with no recorded role (travel places, inline mentions) ignore the role filter.
   if (x.roles.length && !x.roles.some((r) => f.roles.has(r))) return false;
   if (f.from && !x.from.includes(f.from)) return false;
@@ -529,7 +539,7 @@ function buildFilterBar(
     "Medium",
     MEDIA,
     state.media,
-    (k) => items.filter((x) => x.medium === k).length,
+    (k) => items.filter((x) => x.media.includes(k)).length,
   );
   chipRow(
     "Role",
@@ -648,6 +658,7 @@ function initGeoMaps(maplibregl: MapLibre) {
     const items: Indexed[] = markers.map((m) => ({
       m,
       medium: mediumOf(m),
+      media: mediaOf(m),
       roles: m.roles ?? [],
       from: (m.from ?? []).map((t) => t.toLowerCase()),
       by: (m.by ?? []).map((t) => t.toLowerCase()),
