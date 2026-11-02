@@ -112,19 +112,18 @@ export function markerMedium(icon: string | undefined): string {
  * The media a note-level pin is filed under. A pin whose own icon is a reading
  * icon has just that medium. A travel pin (flag, city…) that also carries
  * reading sources keeps "travel" and adds the reading medium, taken from the
- * note's `reading_icon` (book/newspaper/video/podcast), else "book".
+ * note's `reading_icon` (book/newspaper/video/podcast), else "book". Without
+ * sources, `reading_icon` is ignored.
  */
 export function markerMedia(
   icon: string | undefined,
   { readingIcon, hasSources }: { readingIcon?: string; hasSources?: boolean },
 ): string[] {
   const primary = markerMedium(icon);
-  if (primary !== "travel") return [primary];
-  const readingMedium = readingIcon
-    ? markerMedium(readingIcon)
-    : hasSources
-      ? "book"
-      : "travel";
+  // Only a travel pin that actually has reading sources gains a second medium;
+  // a stale `reading_icon` on a note with no sources is ignored.
+  if (primary !== "travel" || !hasSources) return [primary];
+  const readingMedium = readingIcon ? markerMedium(readingIcon) : "book";
   return readingMedium === "travel" ? [primary] : [primary, readingMedium];
 }
 
