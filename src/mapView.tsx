@@ -5,6 +5,7 @@ import { MAP_CSS, MAP_SCRIPT } from "./assets";
 import {
   noteCoords,
   markerType,
+  markerMedia,
   markerMedium,
   type GeoMarker,
 } from "./markers";
@@ -53,6 +54,17 @@ function render({ entries, slug, allSlugs, linkResolution }: RenderProps) {
       icon,
       type: markerType({ icon, flag }),
       medium: markerMedium(icon),
+      // Bases entries carry frontmatter, not the At a glance table: a non-empty
+      // `books` list is the note's reading sources.
+      media: markerMedia(icon, {
+        readingIcon:
+          typeof entry.properties.reading_icon === "string"
+            ? entry.properties.reading_icon
+            : undefined,
+        hasSources:
+          Array.isArray(entry.properties.books) &&
+          entry.properties.books.length > 0,
+      }),
     });
   }
 

@@ -9962,8 +9962,8 @@ function markerMedium(icon) {
 }
 function markerMedia(icon, { readingIcon, hasSources }) {
   const primary = markerMedium(icon);
-  if (primary !== "travel") return [primary];
-  const readingMedium = readingIcon ? markerMedium(readingIcon) : hasSources ? "book" : "travel";
+  if (primary !== "travel" || !hasSources) return [primary];
+  const readingMedium = readingIcon ? markerMedium(readingIcon) : "book";
   return readingMedium === "travel" ? [primary] : [primary, readingMedium];
 }
 function canonicalRoles(raw) {
@@ -10105,7 +10105,13 @@ function render({ entries, slug: slug2, allSlugs, linkResolution }) {
       flag,
       icon,
       type: markerType({ icon, flag }),
-      medium: markerMedium(icon)
+      medium: markerMedium(icon),
+      // Bases entries carry frontmatter, not the At a glance table: a non-empty
+      // `books` list is the note's reading sources.
+      media: markerMedia(icon, {
+        readingIcon: typeof entry.properties.reading_icon === "string" ? entry.properties.reading_icon : void 0,
+        hasSources: Array.isArray(entry.properties.books) && entry.properties.books.length > 0
+      })
     });
   }
   return /* @__PURE__ */ u2("div", { class: "geo-map-wrapper", children: markers.length === 0 ? /* @__PURE__ */ u2("div", { class: "geo-map-empty", children: "No mappable notes (missing a `coordinates` property)." }) : /* @__PURE__ */ u2("div", { class: "geo-map", "data-geo-markers": JSON.stringify(markers) }) });
